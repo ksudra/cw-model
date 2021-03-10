@@ -79,40 +79,51 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return null;
 		}
 
-	//Method to read plain text graph, based on the method from worksheet 3
-	ImmutableValueGraph<Integer, ImmutableSet<ScotlandYard.Transport>> readGraph(String content) {
-		List<String> lines = content.lines().collect(Collectors.toList());
-		if (lines.isEmpty()) throw new IllegalArgumentException("No lines");
-		int currentLine = 0;
+		//Method to read plain text graph, based on the method from worksheet 3
+		ImmutableValueGraph<Integer, ScotlandYard.Transport> readGraph(String content) {
+			List<String> lines = content.lines().collect(Collectors.toList());
+			if (lines.isEmpty()) throw new IllegalArgumentException("No lines");
+			int currentLine = 0;
 
-		String[] topLine = lines.get(currentLine++).split(" ");
-		int numberOfNodes = Integer.parseInt(topLine[0]);
-		int numberOfEdges = Integer.parseInt(topLine[1]);
+			String[] topLine = lines.get(currentLine++).split(" ");
+			int numberOfNodes = Integer.parseInt(topLine[0]);
+			int numberOfEdges = Integer.parseInt(topLine[1]);
 
-		ImmutableValueGraph.Builder<Integer, ImmutableSet<ScotlandYard.Transport>> builder = ValueGraphBuilder
-				.undirected()
-				.expectedNodeCount(numberOfNodes)
-				.immutable();
+			ImmutableValueGraph.Builder<Integer, ScotlandYard.Transport> builder = ValueGraphBuilder
+					.undirected()
+					.expectedNodeCount(numberOfNodes)
+					.immutable();
 
 
-		for (int i = 0; i < numberOfNodes; i++) {
-			String line = lines.get(currentLine++);
-			if (line.isEmpty()) continue;
-			builder.addNode(Integer.parseInt(line));
+			for (int i = 0; i < numberOfNodes; i++) {
+				String line = lines.get(currentLine++);
+				if (line.isEmpty()) continue;
+				builder.addNode(Integer.parseInt(line));
+			}
+
+			for (int i = 0; i < numberOfEdges; i++) {
+				String line = lines.get(currentLine++);
+				if (line.isEmpty()) continue;
+
+				String[] s = line.split(" ");
+				ScotlandYard.Transport transport = null;
+
+				if(s[2] == "Taxi") {
+					transport = ScotlandYard.Transport.TAXI;
+				} else  if (s[2] == "Bus") {
+					transport = ScotlandYard.Transport.BUS;
+				} else  if (s[2] == "Underground") {
+					transport = ScotlandYard.Transport.UNDERGROUND;
+				} else {
+					transport = ScotlandYard.Transport.FERRY;
+				}
+
+				if (s.length != 3) throw new IllegalArgumentException("Bad edge line:" + line);
+				builder.putEdgeValue(Integer.parseInt(s[0]),
+						Integer.parseInt(s[1]),
+						transport);
+				}
+			return builder.build();
 		}
-
-		for (int i = 0; i < numberOfEdges; i++) {
-			String line = lines.get(currentLine++);
-			if (line.isEmpty()) continue;
-
-			String[] s = line.split(" ");
-			if (s.length != 3) throw new IllegalArgumentException("Bad edge line:" + line);
-			builder.putEdgeValue(Integer.parseInt(s[0]),
-					Integer.parseInt(s[1]),
-					);
-		}
-		return builder.build();
 	}
-	}
-
 }
