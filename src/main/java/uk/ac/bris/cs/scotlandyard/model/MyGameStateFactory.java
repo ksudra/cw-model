@@ -10,8 +10,7 @@ import com.google.common.graph.ValueGraphBuilder;
 import uk.ac.bris.cs.scotlandyard.model.Board.GameState;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Factory;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -101,13 +100,32 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				builder.addNode(Integer.parseInt(line));
 			}
 
+//			Create a list of arrays to store all edges as undirected
+			List<int[]> list = new ArrayList<>();
+			int[] a= new int[2];
+
+//			Adds all nodes to list of undirected edges.
+			for (int i = 0; i < numberOfEdges; i++) {
+				String line = lines.get(currentLine++);
+				if (line.isEmpty()) continue;
+
+				String[] s = line.split(" ");
+				a[0] = Integer.parseInt(s[0]);
+				a[1] = Integer.parseInt(s[1]);
+				list.add(a);
+			}
+
 			for (int i = 0; i < numberOfEdges; i++) {
 				String line = lines.get(currentLine++);
 				if (line.isEmpty()) continue;
 
 				String[] s = line.split(" ");
 				ScotlandYard.Transport transport = null;
+				a[0] = Integer.parseInt(s[0]);
+				a[1] = Integer.parseInt(s[1]);
+				list.add(a);
 
+//				Determines the type of transport based on the plain text file
 				if(s[2] == "Taxi") {
 					transport = ScotlandYard.Transport.TAXI;
 				} else  if (s[2] == "Bus") {
@@ -118,11 +136,12 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					transport = ScotlandYard.Transport.FERRY;
 				}
 
+//				Adds edge to graph if the line contains to nodes and an edge value.
 				if (s.length != 3) throw new IllegalArgumentException("Bad edge line:" + line);
 				builder.putEdgeValue(Integer.parseInt(s[0]),
 						Integer.parseInt(s[1]),
 						transport);
-				}
+			}
 			return builder.build();
 		}
 	}
