@@ -5,10 +5,12 @@ import com.google.common.collect.ImmutableList;
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.graph.Graph;
 import com.google.common.graph.ImmutableValueGraph;
 import com.google.common.graph.ValueGraphBuilder;
 import uk.ac.bris.cs.scotlandyard.model.Board.GameState;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Factory;
+import java.lang.Object;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -46,17 +48,25 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				final Player mrX,
 				final List<Player> detectives) {
 			this.setup = setup;
-			if(this.setup.graph == null) throw new IllegalArgumentException("Graph is empty");
+			if(this.setup.graph.nodes().isEmpty() && this.setup.graph.edges().isEmpty()) throw new
+					IllegalArgumentException("Graph is empty");
 			if(this.setup.rounds.isEmpty()) throw new IllegalArgumentException("Rounds is empty");
 			this.remaining = remaining;
 			if(this.remaining.isEmpty()) throw new IllegalArgumentException("Pieces is empty");
 			this.log = log;
 			this.mrX = mrX;
-			if(this.mrX == null) throw new NullPointerException("There is no Mr.X");
+			if(this.mrX == null) throw new NullPointerException("Mr.X is null");
+			if(!this.mrX.isMrX()) throw new IllegalArgumentException("There is no Mr.X");
 			this.detectives = detectives;
 			if(this.detectives.isEmpty()) throw new IllegalArgumentException("There are no detectives");
+//			if(this.detectives.stream().distinct().collect(Collectors.toList()) != this.detectives) throw new
+//					IllegalArgumentException("There are duplicate detectives");
 			for(int i = 0; i < detectives.size(); i++) {
 				if(detectives.get(i).piece() == null) throw new NullPointerException("Detective is null");
+				if(detectives.get(i).has(ScotlandYard.Ticket.DOUBLE)) throw new
+						IllegalArgumentException("Detective has double ticket");
+				if(detectives.get(i).has(ScotlandYard.Ticket.SECRET)) throw new
+						IllegalArgumentException("Detective has secret ticket");
 			}
 		}
 
@@ -67,7 +77,12 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 			@Override
 			public ImmutableSet<Piece> getPlayers() {
-				return null;
+				Set<Piece> players = new HashSet<>();
+				players.add(mrX.piece());
+				for (int i = 0; i < detectives.size(); i++) {
+					players.add(detectives.get(i).piece());
+				}
+				return ImmutableSet.copyOf(players);
 			}
 
 			@Override
