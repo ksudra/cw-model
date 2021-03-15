@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.graph.Graph;
 import com.google.common.graph.ImmutableValueGraph;
@@ -14,6 +15,8 @@ import java.lang.Object;
 
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Ticket.*;
 
 /**
  * cw-model
@@ -101,6 +104,15 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 			@Override
 			public Optional<TicketBoard> getPlayerTickets(Piece piece) {
+				if(piece.isMrX()) {
+					return Optional.of(new MyBoard(mrX));
+				} else {
+					for(int i = 0; i < detectives.size(); i++) {
+						if(detectives.get(i).piece() == piece) {
+							return Optional.of(new MyBoard(detectives.get(i)));
+						}
+					}
+				}
 				return Optional.empty();
 			}
 
@@ -133,13 +145,24 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			}
 
 			private final class MyBoard implements TicketBoard {
-				private MyBoard() {
-					Player player;
+				private Player player;
+				private int taxi;
+				private int bus;
+				private int underground;
+				private int x2;
+				private int secret;
+				private MyBoard(final Player player) {
+					this.player = player;
+					this.taxi = getCount(ScotlandYard.Ticket.TAXI);
+					this.bus = getCount(ScotlandYard.Ticket.BUS);
+					this.underground = getCount(ScotlandYard.Ticket.UNDERGROUND);
+					this.x2 = getCount(ScotlandYard.Ticket.DOUBLE);
+					this.secret = getCount(ScotlandYard.Ticket.SECRET);
 				}
 
 				@Override
 				public int getCount(@Nonnull ScotlandYard.Ticket ticket) {
-					return detectives.get(0).tickets().get(ticket);
+					return player.tickets().get(ticket);
 				}
 			}
 	}
