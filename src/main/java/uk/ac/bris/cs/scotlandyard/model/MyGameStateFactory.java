@@ -47,6 +47,8 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				final ImmutableList<LogEntry> log,
 				final Player mrX,
 				final List<Player> detectives) {
+			HashSet<String> uniqueDetectives = new HashSet<>();
+			HashSet<Integer> uniqueLocations = new HashSet<>();
 			this.setup = setup;
 			if(this.setup.graph.nodes().isEmpty() && this.setup.graph.edges().isEmpty()) throw new
 					IllegalArgumentException("Graph is empty");
@@ -59,14 +61,16 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			if(!this.mrX.isMrX()) throw new IllegalArgumentException("There is no Mr.X");
 			this.detectives = detectives;
 			if(this.detectives.isEmpty()) throw new IllegalArgumentException("There are no detectives");
-//			if(this.detectives.stream().distinct().collect(Collectors.toList()) != this.detectives) throw new
-//					IllegalArgumentException("There are duplicate detectives");
 			for(int i = 0; i < detectives.size(); i++) {
 				if(detectives.get(i).piece() == null) throw new NullPointerException("Detective is null");
 				if(detectives.get(i).has(ScotlandYard.Ticket.DOUBLE)) throw new
 						IllegalArgumentException("Detective has double ticket");
 				if(detectives.get(i).has(ScotlandYard.Ticket.SECRET)) throw new
 						IllegalArgumentException("Detective has secret ticket");
+				if(!uniqueDetectives.add(detectives.get(i).piece().webColour())) throw new
+						IllegalArgumentException("There are duplicate detectives");
+				if(!uniqueLocations.add(detectives.get(i).location())) throw new
+						IllegalArgumentException("There are duplicate locations");
 			}
 		}
 
@@ -87,13 +91,12 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 			@Override
 			public Optional<Integer> getDetectiveLocation(Piece.Detective detective) {
-				int loc = 0;
 				for(int i = 0; i < detectives.size(); i++) {
 					if(detectives.get(i).piece() == detective) {
-						loc = detectives.get(i).location();
+						return Optional.of(Optional.of(detectives.get(i).location())).orElse(Optional.empty());
 					}
 				}
-				return Optional.of(Optional.of(loc)).orElse(Optional.empty());
+				return Optional.empty();
 			}
 
 			@Override
@@ -105,10 +108,18 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			public ImmutableList<LogEntry> getMrXTravelLog() {
 				return log;
 			}
-
+//			MrX can't win
 			@Override
 			public ImmutableSet<Piece> getWinner() {
-				return null;
+				List<Piece> winners = new ArrayList<>();
+				for (int i = 0; i < detectives.size(); i++) {
+					if(detectives.get(i).location() == mrX.location()) {
+						for (int j = 0; i < detectives.size(); j++) {
+							winners.add(detectives.get(j).piece());
+						}
+					}
+				}
+				return ImmutableSet.copyOf(winners);
 			}
 
 			@Override
@@ -119,6 +130,17 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			@Override
 			public GameState advance(Move move) {
 				return null;
+			}
+
+			private final class MyBoard implements TicketBoard {
+				private MyBoard() {
+					Player player;
+				}
+
+				@Override
+				public int getCount(@Nonnull ScotlandYard.Ticket ticket) {
+					return detectives.get(0).tickets().get(ticket);
+				}
 			}
 	}
 }
