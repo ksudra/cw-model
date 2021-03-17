@@ -167,6 +167,34 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			}
 	}
 
+	private static ImmutableSet<Move.SingleMove> makeSingleMoves(
+			GameSetup setup,
+			List<Player> detectives,
+			Player player,
+			int source){
+		final var singleMoves = new ArrayList<Move.SingleMove>();
+		Set<Integer> toRemove = new HashSet<>();
+		for(int destination : setup.graph.adjacentNodes(source)) {
+			// TODO find out if destination is occupied by a detective
+			//  if the location is occupied, don't add to the list of moves to return
+			for (int i = 0; i < detectives.size(); i++) {
+				if(detectives.get(i).location() == destination) toRemove.add(destination);
+			}
+			//
+			for(ScotlandYard.Transport t : setup.graph.edgeValueOrDefault(source,destination,ImmutableSet.of())) {
+				// TODO find out if the player has the required tickets
+				//  if it does, construct SingleMove and add it the list of moves to return
+//				if(!toRemove.contains(destination) && player.has(t.requiredTicket())) singleMoves.add(player.piece(), source, t.requiredTicket(), destination);
+				if(!toRemove.contains(destination) && player.has(t.requiredTicket())) {
+					singleMoves.add(player.piece(), source, t.requiredTicket(), destination);
+				}
+			}
+			// TODO consider the rules of secret moves here
+			//  add moves to the destination via a secret ticket if there are any left with the player
+		}
+		return ImmutableSet.copyOf(singleMoves);
+	}
+
 //	private static ImmutableSet<Move.SingleMove> makeSingleMoves(
 //			GameSetup setup,
 //			List<Player> detectives,
