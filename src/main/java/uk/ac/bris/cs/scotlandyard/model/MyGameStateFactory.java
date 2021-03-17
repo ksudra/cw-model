@@ -167,33 +167,33 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			}
 	}
 
-	private static ImmutableSet<Move.SingleMove> makeSingleMoves(
-			GameSetup setup,
-			List<Player> detectives,
-			Player player,
-			int source){
-		final var singleMoves = new ArrayList<Move.SingleMove>();
-		ScotlandYard.Transport transport;
-		List edgeValues;
-		for(int destination : setup.graph.adjacentNodes(source)) {
-			// TODO find out if destination is occupied by a detective
-			//  if the location is occupied, don't add to the list of moves to return
-			for (int i = 0; i < detectives.size(); i ++) {
-				if(detectives.get(i).location() != destination) {
-					edgeValues = List.copyOf(setup.graph.edgeValue(source,
-							detectives.get(i).location()).orElse(null));
-					for(int j = 0; j < edgeValues.size(); j++) {
-						transport = (ScotlandYard.Transport) edgeValues.get(j);
-						if(player.has(transport.requiredTicket())) {
-							singleMoves.add(new Move.SingleMove(player.piece(), source, transport.requiredTicket(),
-									detectives.get(i).location()));
-						} else if (player.has(SECRET)) {
-
-						}
-					}
-				}
-			}
-		}
-		return ImmutableSet.copyOf(singleMoves);
-	}
+//	private static ImmutableSet<Move.SingleMove> makeSingleMoves(
+//			GameSetup setup,
+//			List<Player> detectives,
+//			Player player,
+//			int source){
+//		final var singleMoves = new ArrayList<Move.SingleMove>();
+//		ScotlandYard.Transport transport;
+//		List edgeValues;
+//		for(int destination : setup.graph.adjacentNodes(source)) {
+//			// TODO find out if destination is occupied by a detective
+//			//  if the location is occupied, don't add to the list of moves to return
+//			for (int i = 0; i < detectives.size(); i ++) {
+//				if(detectives.get(i).location() != destination) {
+//					edgeValues = List.copyOf(setup.graph.edgeValue(source,
+//							detectives.get(i).location()).orElse(null));
+//					for(int j = 0; j < edgeValues.size(); j++) {
+//						transport = (ScotlandYard.Transport) edgeValues.get(j);
+//						if(player.has(transport.requiredTicket())) {
+//							singleMoves.add(new Move.SingleMove(player.piece(), source, transport.requiredTicket(),
+//									detectives.get(i).location()));
+//						} else if (player.has(SECRET)) {
+//
+//						}
+//					}
+//				}
+//			}
+//		}
+//		return ImmutableSet.copyOf(singleMoves);
+//	}
 }
