@@ -104,6 +104,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 			@Override
 			public Optional<TicketBoard> getPlayerTickets(Piece piece) {
+				if (remaining.contains(piece)) {
 				if(piece.isMrX()) {
 					return Optional.of(new MyBoard(mrX));
 				} else {
@@ -112,6 +113,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 							return Optional.of(new MyBoard(detectives.get(i)));
 						}
 					}
+				}
 				}
 				return Optional.empty();
 			}
@@ -139,11 +141,50 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				return null;
 			}
 
+			
 			@Override
-			public GameState advance(Move move) {
-				return null;
-			}
+		public GameState advance(Move move) {
+			if(!getAvailableMoves().contains(move)) throw new IllegalArgumentException("Illegal move: "+move);
+			ImmutableSet<Piece> Updated_Remaining = UpdateRemaining(move);
+			GameSetup Updated_Setup = UpdateSetup(move);
+			ImmutableList<LogEntry> Updated_Log = UpdateLog(move);
+			Player Updated_mrX = UpdatemrX(move);
+			List<Player> Updated_Detectives = UpdateDetectives(move);
 
+			return new MyGameState(
+					Updated_Setup,
+					Updated_Remaining,
+					Updated_Log,
+					Updated_mrX,
+					Updated_Detectives
+					);
+		}
+
+		private ImmutableSet<Piece> UpdateRemaining(Move move){
+
+		}
+
+
+		private GameSetup UpdateSetup(Move move){
+
+
+		}
+
+		private ImmutableList<LogEntry> UpdateLog(Move move){
+
+		}
+
+		private Player UpdatemrX(Move move){
+
+
+		}
+
+		private List<Player> UpdateDetectives(Move move){
+
+
+		}
+			
+			
 			private final class MyBoard implements TicketBoard {
 				private Player player;
 				private int taxi;
