@@ -184,13 +184,17 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			for(ScotlandYard.Transport t : setup.graph.edgeValueOrDefault(source,destination,ImmutableSet.of())) {
 				// TODO find out if the player has the required tickets
 				//  if it does, construct SingleMove and add it the list of moves to return
-//				if(!toRemove.contains(destination) && player.has(t.requiredTicket())) singleMoves.add(player.piece(), source, t.requiredTicket(), destination);
-				if(!toRemove.contains(destination) && player.has(t.requiredTicket())) {
-					singleMoves.add(player.piece(), source, t.requiredTicket(), destination);
-				}
+				if(!toRemove.contains(destination) && player.has(t.requiredTicket()))
+					singleMoves.add(new Move.SingleMove(player.piece(), source, t.requiredTicket(), destination));
 			}
 			// TODO consider the rules of secret moves here
 			//  add moves to the destination via a secret ticket if there are any left with the player
+			if (player.has(SECRET)) {
+				for(ScotlandYard.Transport t : setup.graph.edgeValueOrDefault(source,destination,ImmutableSet.of())) {
+					if(!toRemove.contains(destination))
+						singleMoves.add(new Move.SingleMove(player.piece(), source, SECRET, destination));
+				}
+			}
 		}
 		return ImmutableSet.copyOf(singleMoves);
 	}
