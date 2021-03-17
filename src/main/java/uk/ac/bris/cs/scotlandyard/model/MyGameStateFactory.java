@@ -202,8 +202,25 @@ public final class MyGameStateFactory implements Factory<GameState> {
 	private static ImmutableSet<Move.DoubleMove> makeDoubleMoves (
 			GameSetup setup,
 			List<Player> detectives,
-			Player player,
+			Player mrX,
 			int source){
-
+		final var doubleMoves = new ArrayList<Move.DoubleMove>();
+		Map<ScotlandYard.Ticket, Integer> ticketsLeft = mrX.tickets();
+		List<Move.SingleMove> dest1;
+		List<Move.SingleMove> dest2;
+		if(mrX.has(DOUBLE)) {
+			dest1 = List.copyOf(makeSingleMoves(setup, detectives, mrX, source));
+			for(int i = 0; i < dest1.size(); i++) {
+				ticketsLeft.replace(dest1.get(i).ticket, ticketsLeft.get(dest1.get(i).ticket) - 1);
+				dest2 = List.copyOf(makeSingleMoves(setup, detectives, mrX, dest1.get(i).destination));
+				for (int j = 0; j < dest2.size(); j++) {
+					if (ticketsLeft.get(dest2.get(j).ticket) > 0)
+						doubleMoves.add(new Move.DoubleMove(mrX.piece(), source, dest1.get(i).ticket,
+								dest1.get(i).destination, dest2.get(j).ticket, dest2.get(j).destination));
+				}
+				ticketsLeft = mrX.tickets();
+			}
+		}
+		return ImmutableSet.copyOf(doubleMoves);
 	}
 }
