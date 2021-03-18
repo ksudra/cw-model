@@ -24,8 +24,6 @@ import static uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Ticket.*;
  */
 
 public final class MyGameStateFactory implements Factory<GameState> {
-
-
 	@Nonnull @Override public GameState build(
 			GameSetup setup,
 			Player mrX,
@@ -136,7 +134,13 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 			@Override
 			public ImmutableSet<Move> getAvailableMoves() {
-				return null;
+				Set<Move> moves = new HashSet<>();
+//				for (int i = 0; i < detectives.size(); i++) {
+//					moves.addAll(makeSingleMoves(setup, detectives, detectives.get(i), detectives.get(i).location()));
+//				}
+				moves.addAll(makeSingleMoves(setup, detectives, mrX, mrX.location()));
+				moves.addAll(makeDoubleMoves(setup, detectives, mrX, mrX.location()));
+				return ImmutableSet.copyOf(moves);
 			}
 
 			@Override
@@ -165,6 +169,59 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					return player.tickets().get(ticket);
 				}
 			}
+	}
+
+	private final class MyMove implements Move {
+		private Player player;
+		private Piece piece = commencedBy();
+		private int source;
+		private int dest1;
+		private int dest2;
+		private ScotlandYard.Ticket ticket1;
+		private ScotlandYard.Ticket ticket2;
+		private MyMove(final Player player,
+					   final ScotlandYard.Ticket ticket1,
+					   final int dest1,
+					   final ScotlandYard.Ticket ticket2,
+					   final int dest2) {
+			this.player = player;
+			this.piece = commencedBy();
+			this.dest1 = dest1;
+			this.ticket1 = ticket1;
+			this.dest2 = dest2;
+			this.ticket2 = ticket2;
+		}
+
+		private MyMove(final Player player,
+					   final int source,
+					   final int dest1) {
+			this.player = player;
+			this.piece = commencedBy();
+			this.source = source;
+			this.dest1 = dest1;
+		}
+
+		@Nonnull
+		@Override
+		public Piece commencedBy() {
+			return player.piece();
+		}
+
+		@Nonnull
+		@Override
+		public Iterable<ScotlandYard.Ticket> tickets() {
+			return (Iterable<ScotlandYard.Ticket>) player.tickets();
+		}
+
+		@Override
+		public int source() {
+			return player.location();
+		}
+
+		@Override
+		public <T> T visit(Visitor<T> visitor) {
+			return null;
+		}
 	}
 
 	private static ImmutableSet<Move.SingleMove> makeSingleMoves(
@@ -202,23 +259,23 @@ public final class MyGameStateFactory implements Factory<GameState> {
 	private static ImmutableSet<Move.DoubleMove> makeDoubleMoves (
 			GameSetup setup,
 			List<Player> detectives,
-			Player mrX,
+			Player player,
 			int source){
 		final var doubleMoves = new ArrayList<Move.DoubleMove>();
-		Map<ScotlandYard.Ticket, Integer> ticketsLeft = mrX.tickets();
 		List<Move.SingleMove> dest1;
 		List<Move.SingleMove> dest2;
-		if(mrX.has(DOUBLE)) {
-			dest1 = List.copyOf(makeSingleMoves(setup, detectives, mrX, source));
+		if(player.has(DOUBLE) && setup.rounds.size() > 1) {
+			dest1 = List.copyOf(makeSingleMoves(setup, detectives, player, source));
 			for(int i = 0; i < dest1.size(); i++) {
-				ticketsLeft.replace(dest1.get(i).ticket, ticketsLeft.get(dest1.get(i).ticket) - 1);
-				dest2 = List.copyOf(makeSingleMoves(setup, detectives, mrX, dest1.get(i).destination));
+				dest2 = List.copyOf(makeSingleMoves(setup, detectives, player, dest1.get(i).destination));
 				for (int j = 0; j < dest2.size(); j++) {
-					if (ticketsLeft.get(dest2.get(j).ticket) > 0)
-						doubleMoves.add(new Move.DoubleMove(mrX.piece(), source, dest1.get(i).ticket,
+					if (dest1.get(i).ticket == dest2.get(j).ticket && player.hasAtLeast(dest1.get(i).ticket, 2))
+						doubleMoves.add(new Move.DoubleMove(player.piece(), source, dest1.get(i).ticket,
+								dest1.get(i).destination, dest2.get(j).ticket, dest2.get(j).destination));
+					else if (dest1.get(i).ticket != dest2.get(j).ticket)
+						doubleMoves.add(new Move.DoubleMove(player.piece(), source, dest1.get(i).ticket,
 								dest1.get(i).destination, dest2.get(j).ticket, dest2.get(j).destination));
 				}
-				ticketsLeft = mrX.tickets();
 			}
 		}
 		return ImmutableSet.copyOf(doubleMoves);
