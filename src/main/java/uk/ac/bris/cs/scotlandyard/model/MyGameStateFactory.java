@@ -119,6 +119,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			public ImmutableList<LogEntry> getMrXTravelLog() {
 				return log;
 			}
+
 //			MrX can't win
 			@Override
 			public ImmutableSet<Piece> getWinner() {
@@ -136,18 +137,80 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			@Override
 			public ImmutableSet<Move> getAvailableMoves() {
 				Set<Move> moves = new HashSet<>();
-//				for (int i = 0; i < detectives.size(); i++) {
-//					moves.addAll(makeSingleMoves(setup, detectives, detectives.get(i), detectives.get(i).location()));
-//				}
-				moves.addAll(makeSingleMoves(setup, detectives, mrX, mrX.location()));
-				moves.addAll(makeDoubleMoves(setup, detectives, mrX, mrX.location()));
+				for (int i = 0; i < detectives.size(); i++) {
+					if (remaining.contains(detectives.get(i).piece())) {
+						moves.addAll(makeSingleMoves(setup, detectives, detectives.get(i), detectives.get(i).location()));
+					}
+				} if(remaining.contains(mrX.piece())) {
+					moves.addAll(makeSingleMoves(setup, detectives, mrX, mrX.location()));
+					moves.addAll(makeDoubleMoves(setup, detectives, mrX, mrX.location()));
+				}
 				return ImmutableSet.copyOf(moves);
 			}
 
 			@Override
 			public GameState advance(Move move) {
-				return null;
+				Player newPlayer;
+				Map<ScotlandYard.Ticket, Integer> newTickets = new HashMap<>();
+				if (remaining.contains(move.commencedBy())) {
+					if (!getAvailableMoves().contains(move))
+						throw new IllegalArgumentException("Illegal move: " + move);
+
+					if (move.commencedBy().isMrX()) {
+						newTickets = Map.copyOf(mrX.tickets());
+					} else {
+						for (int i = 0; i < detectives.size(); i++) {
+							if (move.commencedBy() == detectives.get(i).piece()) newTickets =
+									Map.copyOf(detectives.get(i).tickets());
+						}
+					}
+
+					int newTaxi = newTickets.get(TAXI);
+					int newBus = newTickets.get(BUS);
+					int newUnderground = newTickets.get(UNDERGROUND);
+					int newSecret = newTickets.get(SECRET);
+					int newDouble = newTickets.get(DOUBLE);
+
+					for (ScotlandYard.Ticket ticket : move.tickets()) {
+						switch (ticket) {
+							case TAXI:
+								newTaxi--;
+							case BUS:
+								newBus--;
+							case UNDERGROUND:
+								newUnderground--;
+							case SECRET:
+								newSecret--;
+							case DOUBLE:
+								newDouble--;
+						}
+					}
+
+					newTickets = ImmutableMap.of(TAXI, newTaxi, BUS, newBus, UNDERGROUND, newUnderground, SECRET, newSecret,
+							DOUBLE, newDouble);
+
+					newPlayer = new Player(move.commencedBy(), ImmutableMap.copyOf(newTickets), move.getDestination());
+					Set<Piece> newRemaining = new HashSet<>();
+
+					if (newPlayer.isMrX()) {
+						for (int i = 0; i < detectives.size(); i++) {
+							newRemaining.add(detectives.get(i).piece());
+						}
+						remaining = ImmutableSet.copyOf(newRemaining);
+						return new MyGameState(setup, remaining, log, newPlayer, detectives);
+					} else {
+						newRemaining.add(mrX.piece());
+						for (int i = 0; i < detectives.size(); i++) {
+							if (newPlayer.piece() == detectives.get(i).piece()) detectives.set(i, newPlayer);
+							else newRemaining.add(detectives.get(i).piece());
+						}
+					}
+					remaining = ImmutableSet.copyOf(newRemaining);
+					return new MyGameState(setup, remaining, log, mrX, detectives);
+				}
+				else return new MyGameState(setup, remaining, log, mrX, detectives);
 			}
+
 
 			private final class MyBoard implements TicketBoard {
 				private Player player;
@@ -173,50 +236,64 @@ public final class MyGameStateFactory implements Factory<GameState> {
 	}
 
 	private final class MyMove implements Move {
-		private Player player;
-		private Piece piece = commencedBy();
+		private Piece piece;
+		private DoubleMove doubleMove;
+		private SingleMove singleMove;
 		private int source;
 		private int dest1;
 		private int dest2;
+		private boolean moveType;
 		private ScotlandYard.Ticket ticket1;
 		private ScotlandYard.Ticket ticket2;
-		private MyMove(final Player player,
-					   final ScotlandYard.Ticket ticket1,
-					   final int dest1,
-					   final ScotlandYard.Ticket ticket2,
-					   final int dest2) {
-			this.player = player;
+
+		private MyMove(SingleMove singleMove) {
+			this.singleMove = singleMove;
+			this.moveType = singleMove.isMoveType();
 			this.piece = commencedBy();
-			this.dest1 = dest1;
-			this.ticket1 = ticket1;
-			this.dest2 = dest2;
-			this.ticket2 = ticket2;
+			this.source = singleMove.source;
+			this.ticket1 = singleMove.ticket;
+			this.dest1 = singleMove.destination;
 		}
 
-		private MyMove(final Player player,
-					   final int source,
-					   final int dest1) {
-			this.player = player;
+		private MyMove(DoubleMove doubleMove) {
+			this.doubleMove = doubleMove;
+			this.moveType = doubleMove.isMoveType();
 			this.piece = commencedBy();
-			this.source = source;
-			this.dest1 = dest1;
+			this.ticket1 = doubleMove.ticket1;
+			this.dest1 = doubleMove.destination1;
+			this.ticket2 = doubleMove.ticket2;
+			this.dest2 = doubleMove.destination2;
 		}
 
 		@Nonnull
 		@Override
 		public Piece commencedBy() {
-			return player.piece();
+			if (isMoveType()) return doubleMove.piece;
+			else return singleMove.piece;
 		}
 
 		@Nonnull
 		@Override
 		public Iterable<ScotlandYard.Ticket> tickets() {
-			return (Iterable<ScotlandYard.Ticket>) player.tickets();
+			if (isMoveType()) return doubleMove.tickets();
+			else return singleMove.tickets();
 		}
 
 		@Override
 		public int source() {
-			return player.location();
+			if (isMoveType()) return doubleMove.source;
+			else return source;
+		}
+
+		@Override
+		public int getDestination() {
+			if (isMoveType()) return doubleMove.getDestination();
+			else return singleMove.getDestination();
+		}
+
+		@Override
+		public boolean isMoveType() {
+			return moveType;
 		}
 
 		@Override

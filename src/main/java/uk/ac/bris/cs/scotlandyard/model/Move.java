@@ -29,6 +29,9 @@ public interface Move extends Serializable {
 	 * @return the source of this move (i.e where the player is at before the move)
 	 */
 	int source();
+
+	int getDestination();
+
 	/**
 	 * Visits all possible move types that implement {@link Move}
 	 *
@@ -38,6 +41,8 @@ public interface Move extends Serializable {
 	 * @return the return value
 	 */
 	<T> T visit(Visitor<T> visitor);
+
+	boolean isMoveType();
 
 	/**
 	 * A generic visitor for use with the {@link Move#visit(Visitor)} method.
@@ -78,8 +83,8 @@ public interface Move extends Serializable {
 	 */
 	final class SingleMove implements Move {
 		private static final long serialVersionUID = -1349204443558253282L;
-		private final Piece piece;
-		private final int source;
+		public final Piece piece;
+		public final int source;
 		/**
 		 * The ticket
 		 */
@@ -98,6 +103,12 @@ public interface Move extends Serializable {
 		@Nonnull @Override public Piece commencedBy() { return piece; }
 		@Nonnull @Override public Iterable<Ticket> tickets() { return ImmutableList.of(ticket); }
 		@Override public int source() { return source; }
+
+		@Override
+		public int getDestination() {
+			return destination;
+		}
+
 		@Override public <T> T visit(Visitor<T> visitor) { return visitor.visit(this); }
 		@Override public boolean equals(Object o) {
 			if (this == o) return true;
@@ -110,6 +121,11 @@ public interface Move extends Serializable {
 		@Override public String toString() {
 			return ticket.name() + "(" + piece + "@" + source + ", " + destination + ")";
 		}
+
+		@Override
+		public boolean isMoveType() {
+			return false;
+		}
 	}
 
 	/**
@@ -117,8 +133,8 @@ public interface Move extends Serializable {
 	 */
 	final class DoubleMove implements Move {
 		private static final long serialVersionUID = 4836583762114320876L;
-		private final Piece piece;
-		private final int source;
+		public final Piece piece;
+		public final int source;
 		/**
 		 * The first ticket
 		 */
@@ -149,6 +165,12 @@ public interface Move extends Serializable {
 		@Nonnull @Override
 		public Iterable<Ticket> tickets() { return ImmutableList.of(ticket1, ticket2, DOUBLE);}
 		@Override public int source() { return source; }
+
+		@Override
+		public int getDestination() {
+			return destination2;
+		}
+
 		@Override public <T> T visit(Visitor<T> visitor) { return visitor.visit(this); }
 		@Override public boolean equals(Object o) {
 			if (this == o) return true;
@@ -163,6 +185,10 @@ public interface Move extends Serializable {
 		}
 		@Override public String toString() {
 			return "x2(" + piece + "@" + source + ", " + ticket1 + ", " + destination1 + ", " + ticket2 + ", " + destination2 + ")";
+		}
+		@Override
+		public boolean isMoveType() {
+			return true;
 		}
 	}
 }
