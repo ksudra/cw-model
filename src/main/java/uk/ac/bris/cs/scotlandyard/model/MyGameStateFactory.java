@@ -73,6 +73,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				if(!uniqueLocations.add(detectives.get(i).location())) throw new
 						IllegalArgumentException("There are duplicate locations");
 			}
+			this.moves = getAvailableMoves();
 		}
 
 			@Override
