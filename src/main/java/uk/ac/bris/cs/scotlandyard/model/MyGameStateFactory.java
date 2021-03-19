@@ -151,6 +151,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			@Override
 			public GameState advance(Move move) {
 				Player newPlayer;
+				List<Player> newDetectives = new ArrayList<>();
 				Map<ScotlandYard.Ticket, Integer> newTickets = new HashMap<>();
 				if (remaining.contains(move.commencedBy())) {
 					if (!getAvailableMoves().contains(move))
@@ -192,24 +193,22 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					newPlayer = new Player(move.commencedBy(), ImmutableMap.copyOf(newTickets), move.getDestination());
 					Set<Piece> newRemaining = new HashSet<>();
 
-					if (newPlayer.isMrX()) {
+					if (remaining.contains(newPlayer.piece()) && newPlayer.piece().isMrX()) {
 						for (int i = 0; i < detectives.size(); i++) {
 							newRemaining.add(detectives.get(i).piece());
 						}
 						remaining = ImmutableSet.copyOf(newRemaining);
 						return new MyGameState(setup, remaining, log, newPlayer, detectives);
-					} else {
+					} else if(remaining.contains(newPlayer.piece())) {
 						newRemaining.add(mrX.piece());
-						for (int i = 0; i < detectives.size(); i++) {
-							if (newPlayer.piece() == detectives.get(i).piece()) detectives.set(i, newPlayer);
-							else newRemaining.add(detectives.get(i).piece());
-						}
+						remaining = ImmutableSet.copyOf(newRemaining);
+						return new MyGameState(setup, remaining, log, mrX, detectives);
 					}
-					remaining = ImmutableSet.copyOf(newRemaining);
-					return new MyGameState(setup, remaining, log, mrX, detectives);
+
 				}
-				else return new MyGameState(setup, remaining, log, mrX, detectives);
+				return new MyGameState(setup, remaining, log, mrX, detectives);
 			}
+
 
 
 			private final class MyBoard implements TicketBoard {
