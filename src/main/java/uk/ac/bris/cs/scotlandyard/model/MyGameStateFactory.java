@@ -55,7 +55,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					IllegalArgumentException("Graph is empty");
 			if(this.setup.rounds.isEmpty()) throw new IllegalArgumentException("Rounds is empty");
 			this.remaining = remaining;
-			if(this.remaining.isEmpty()) throw new IllegalArgumentException("Pieces is empty");
 			this.log = log;
 			this.mrX = mrX;
 			if(this.mrX == null) throw new NullPointerException("Mr.X is null");
@@ -153,6 +152,17 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				Player newPlayer;
 				List<Player> newDetectives = new ArrayList<>();
 				Map<ScotlandYard.Ticket, Integer> newTickets = new HashMap<>();
+				Move newMove = move.visit(new Move.Visitor<Move>() {
+					@Override
+					public Move.SingleMove visit(Move.SingleMove move) {
+						return move;
+					}
+					@Override
+					public Move.DoubleMove visit(Move.DoubleMove move) {
+						return move;
+					}
+				});
+
 				if (remaining.contains(move.commencedBy())) {
 					if (!getAvailableMoves().contains(move))
 						throw new IllegalArgumentException("Illegal move: " + move);
@@ -171,6 +181,8 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					int newUnderground = newTickets.get(UNDERGROUND);
 					int newSecret = newTickets.get(SECRET);
 					int newDouble = newTickets.get(DOUBLE);
+
+					if (move.commencedBy().isMrX())
 
 					for (ScotlandYard.Ticket ticket : move.tickets()) {
 						switch (ticket) {
@@ -196,13 +208,28 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					if (remaining.contains(newPlayer.piece()) && newPlayer.piece().isMrX()) {
 						for (int i = 0; i < detectives.size(); i++) {
 							newRemaining.add(detectives.get(i).piece());
+							newDetectives.add(detectives.get(i));
 						}
+
+						return new MyGameState(setup, ImmutableSet.copyOf(newRemaining), log, newPlayer, newDetectives);
+					} else if(remaining.contains(newPlayer.piece()) && newPlayer.piece().isDetective()) {
+						if (remaining.contains(mrX.piece()) && mrX.piece() != newPlayer.piece()) {
+							newRemaining.add(mrX.piece());
+						}
+
+						for (int i = 0; i < detectives.size(); i++) {
+							if(remaining.contains(detectives.get(i).piece()) && detectives.get(i).piece() !=
+									newPlayer.piece()) {
+								newRemaining.add(detectives.get(i).piece());
+								newDetectives.add(detectives.get(i));
+							} else if (remaining.contains(detectives.get(i).piece()) && detectives.get(i).piece() ==
+									newPlayer.piece()) {
+								newDetectives.add(newPlayer);
+							}
+						}
+
 						remaining = ImmutableSet.copyOf(newRemaining);
-						return new MyGameState(setup, remaining, log, newPlayer, detectives);
-					} else if(remaining.contains(newPlayer.piece())) {
-						newRemaining.add(mrX.piece());
-						remaining = ImmutableSet.copyOf(newRemaining);
-						return new MyGameState(setup, remaining, log, mrX, detectives);
+						return new MyGameState(setup, ImmutableSet.copyOf(newRemaining), log, mrX, newDetectives);
 					}
 
 				}
