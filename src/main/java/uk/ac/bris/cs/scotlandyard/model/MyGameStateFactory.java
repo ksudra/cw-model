@@ -182,7 +182,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					if (newPlayer.piece().isMrX()) {
 						for (int i = 0; i < detectives.size(); i++) {
 							newRemaining.add(detectives.get(i).piece());
-							newDetectives.add(detectives.get(i));
+							//newDetectives.add(detectives.get(i));
 						}
 						newMrX = newPlayer;
 
@@ -213,25 +213,21 @@ public final class MyGameStateFactory implements Factory<GameState> {
 							}
 						}
 
-						for (int i = 0; i < detectives.size(); i++) {
-							if(detectives.get(i).piece() != newPlayer.piece()) {
-								newDetectives.add(detectives.get(i));
-							} else if (detectives.get(i).piece() == newPlayer.piece()) {
-								newDetectives.add(newPlayer);
-							}
-						}
+
 
 						remaining = ImmutableSet.copyOf(newRemaining);
 
 					}
 
 				}
-				if (!newDetectives.isEmpty()) {
-					for (int i = 0; i < detectives.size(); i++) {
-						System.out.println(detectives.get(i));
+
+				for (int i = 0; i < detectives.size(); i++) {
+					if(detectives.get(i).piece() != move.commencedBy()) {
+						newDetectives.add(detectives.get(i));
+					} else if (detectives.get(i).piece() == move.commencedBy()) {
+						//newDetectives.add(newPlayer);
+						newDetectives.add(updatePlayer(detectives.get(i), ticketList, move.getDestination(), false));
 					}
-				} else {
-					System.out.println("empty");
 				}
 
 				return new MyGameState(setup, ImmutableSet.copyOf(newRemaining), ImmutableList.copyOf(newLog), newMrX, newDetectives);
