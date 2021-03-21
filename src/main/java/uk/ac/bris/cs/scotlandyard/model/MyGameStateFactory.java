@@ -15,6 +15,7 @@ import java.lang.Object;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Ticket.*;
 
@@ -24,8 +25,6 @@ import static uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Ticket.*;
  */
 
 public final class MyGameStateFactory implements Factory<GameState> {
-
-
 	@Nonnull @Override public GameState build(
 			GameSetup setup,
 			Player mrX,
@@ -33,16 +32,16 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		return new MyGameState(setup, ImmutableSet.of(Piece.MrX.MRX), ImmutableList.of(), mrX, detectives);
 	}
 
-//	private class that implements methods of the GameState interface.
-		private final class MyGameState implements GameState {
-			private GameSetup setup;
-			private ImmutableSet<Piece> remaining;
-			private ImmutableList<LogEntry> log;
-			private Player mrX;
-			private List<Player> detectives;
-			private ImmutableList<Player> everyone;
-			private ImmutableSet<Move> moves;
-			private ImmutableSet<Piece> winner;
+	//	private class that implements methods of the GameState interface.
+	private final class MyGameState implements GameState {
+		private GameSetup setup;
+		private ImmutableSet<Piece> remaining;
+		private ImmutableList<LogEntry> log;
+		private Player mrX;
+		private List<Player> detectives;
+		private ImmutableList<Player> everyone;
+		private ImmutableSet<Move> moves;
+		private ImmutableSet<Piece> winner;
 
 		private MyGameState(
 				final GameSetup setup,
@@ -57,7 +56,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					IllegalArgumentException("Graph is empty");
 			if(this.setup.rounds.isEmpty()) throw new IllegalArgumentException("Rounds is empty");
 			this.remaining = remaining;
-			if(this.remaining.isEmpty()) throw new IllegalArgumentException("Pieces is empty");
 			this.log = log;
 			this.mrX = mrX;
 			if(this.mrX == null) throw new NullPointerException("Mr.X is null");
@@ -75,137 +73,286 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				if(!uniqueLocations.add(detectives.get(i).location())) throw new
 						IllegalArgumentException("There are duplicate locations");
 			}
+			this.moves = getAvailableMoves();
 		}
 
-			@Override
-			public GameSetup getSetup() {
-				return setup;
-			}
+		@Override
+		public GameSetup getSetup() {
+			return setup;
+		}
 
-			@Override
-			public ImmutableSet<Piece> getPlayers() {
-				Set<Piece> players = new HashSet<>();
-				players.add(mrX.piece());
-				for (int i = 0; i < detectives.size(); i++) {
-					players.add(detectives.get(i).piece());
+		@Override
+		public ImmutableSet<Piece> getPlayers() {
+			Set<Piece> players = new HashSet<>();
+			players.add(mrX.piece());
+			for (int i = 0; i < detectives.size(); i++) {
+				players.add(detectives.get(i).piece());
+			}
+			return ImmutableSet.copyOf(players);
+		}
+
+		@Override
+		public Optional<Integer> getDetectiveLocation(Piece.Detective detective) {
+			for(int i = 0; i < detectives.size(); i++) {
+				if(detectives.get(i).piece() == detective) {
+					return Optional.of(Optional.of(detectives.get(i).location())).orElse(Optional.empty());
 				}
-				return ImmutableSet.copyOf(players);
 			}
+			return Optional.empty();
+		}
 
-			@Override
-			public Optional<Integer> getDetectiveLocation(Piece.Detective detective) {
+		@Override
+		public Optional<TicketBoard> getPlayerTickets(Piece piece) {
+			if(piece.isMrX()) {
+				return Optional.of(new MyBoard(mrX));
+			} else {
 				for(int i = 0; i < detectives.size(); i++) {
-					if(detectives.get(i).piece() == detective) {
-						return Optional.of(Optional.of(detectives.get(i).location())).orElse(Optional.empty());
+					if(detectives.get(i).piece() == piece) {
+						return Optional.of(new MyBoard(detectives.get(i)));
 					}
 				}
-				return Optional.empty();
 			}
+			return Optional.empty();
+		}
 
-			@Override
-			public Optional<TicketBoard> getPlayerTickets(Piece piece) {
-				if (remaining.contains(piece)) {
-				if(piece.isMrX()) {
-					return Optional.of(new MyBoard(mrX));
-				} else {
-					for(int i = 0; i < detectives.size(); i++) {
-						if(detectives.get(i).piece() == piece) {
-							return Optional.of(new MyBoard(detectives.get(i)));
-						}
+		@Override
+		public ImmutableList<LogEntry> getMrXTravelLog() {
+			return log;
+		}
+
+		//			MrX can't win
+		@Override
+		public ImmutableSet<Piece> getWinner() {
+			List<Piece> winners = new ArrayList<>();
+			for (int i = 0; i < detectives.size(); i++) {
+				if(detectives.get(i).location() == mrX.location()) {
+					for (int j = 0; i < detectives.size(); j++) {
+						winners.add(detectives.get(j).piece());
 					}
 				}
+			}
+			return ImmutableSet.copyOf(winners);
+		}
+
+		@Override
+		public ImmutableSet<Move> getAvailableMoves() {
+			Set<Move> moves = new HashSet<>();
+			for (int i = 0; i < detectives.size(); i++) {
+				if (remaining.contains(detectives.get(i).piece())) {
+					moves.addAll(makeSingleMoves(setup, detectives, detectives.get(i), detectives.get(i).location()));
 				}
-				return Optional.empty();
+			} if(remaining.contains(mrX.piece())) {
+				moves.addAll(makeSingleMoves(setup, detectives, mrX, mrX.location()));
+				moves.addAll(makeDoubleMoves(setup, detectives, mrX, mrX.location()));
 			}
+			return ImmutableSet.copyOf(moves);
+		}
 
-			@Override
-			public ImmutableList<LogEntry> getMrXTravelLog() {
-				return log;
-			}
-//			MrX can't win
-			@Override
-			public ImmutableSet<Piece> getWinner() {
-				List<Piece> winners = new ArrayList<>();
-				for (int i = 0; i < detectives.size(); i++) {
-					if(detectives.get(i).location() == mrX.location()) {
-						for (int j = 0; i < detectives.size(); j++) {
-							winners.add(detectives.get(j).piece());
-						}
-					}
-				}
-				return ImmutableSet.copyOf(winners);
-			}
-
-			@Override
-			public ImmutableSet<Move> getAvailableMoves() {
-				return null;
-			}
-
-			
-			@Override
+		@Override
 		public GameState advance(Move move) {
-			if(!getAvailableMoves().contains(move)) throw new IllegalArgumentException("Illegal move: "+move);
-			ImmutableSet<Piece> Updated_Remaining = UpdateRemaining(move);
-			GameSetup Updated_Setup = UpdateSetup(move);
-			ImmutableList<LogEntry> Updated_Log = UpdateLog(move);
-			Player Updated_mrX = UpdatemrX(move);
-			List<Player> Updated_Detectives = UpdateDetectives(move);
+			Player newPlayer = null;
+			Player newMrX = mrX;
+			List<Player> newDetectives = new ArrayList<>();
+			Map<ScotlandYard.Ticket, Integer> newTickets = new HashMap<>();
+			Map<ScotlandYard.Ticket, Integer> mrXTickets = new HashMap<>();
+			List<ScotlandYard.Ticket> ticketList = new ArrayList<>();
+			List<LogEntry> newLog = new ArrayList<>();
+			Set<Piece> newRemaining = new HashSet<>();
 
-			return new MyGameState(
-					Updated_Setup,
-					Updated_Remaining,
-					Updated_Log,
-					Updated_mrX,
-					Updated_Detectives
-					);
-		}
+			ticketList = StreamSupport.stream(move.tickets().spliterator(), false)
+					.collect(Collectors.toList());
 
-		private ImmutableSet<Piece> UpdateRemaining(Move move){
-
-		}
-
-
-		private GameSetup UpdateSetup(Move move){
-
-
-		}
-
-		private ImmutableList<LogEntry> UpdateLog(Move move){
-
-		}
-
-		private Player UpdatemrX(Move move){
-
-
-		}
-
-		private List<Player> UpdateDetectives(Move move){
-
-
-		}
-			
-			
-			private final class MyBoard implements TicketBoard {
-				private Player player;
-				private int taxi;
-				private int bus;
-				private int underground;
-				private int x2;
-				private int secret;
-				private MyBoard(final Player player) {
-					this.player = player;
-					this.taxi = getCount(ScotlandYard.Ticket.TAXI);
-					this.bus = getCount(ScotlandYard.Ticket.BUS);
-					this.underground = getCount(ScotlandYard.Ticket.UNDERGROUND);
-					this.x2 = getCount(ScotlandYard.Ticket.DOUBLE);
-					this.secret = getCount(ScotlandYard.Ticket.SECRET);
+			if (remaining.contains(move.commencedBy())) {
+				if (!getAvailableMoves().contains(move)) throw new IllegalArgumentException("Illegal move: " + move);
+				if (move.commencedBy().isMrX()) {
+					newPlayer = updatePlayer(mrX, ticketList, move.getDestination(), false);
+				} else {
+					for (int i = 0; i < detectives.size(); i++) {
+						if (move.commencedBy() == detectives.get(i).piece()) {
+							newPlayer = updatePlayer(detectives.get(i), ticketList, move.getDestination(), false);
+						}
+					}
+					newMrX = updatePlayer(mrX, ticketList, move.getDestination(), true);
 				}
 
-				@Override
-				public int getCount(@Nonnull ScotlandYard.Ticket ticket) {
-					return player.tickets().get(ticket);
+				for (int i = 0; i < log.size(); i++) {
+					newLog.add(log.get(i));
+				}
+
+				if (newPlayer.piece().isMrX()) {
+					for (int i = 0; i < detectives.size(); i++) {
+						newRemaining.add(detectives.get(i).piece());
+						//newDetectives.add(detectives.get(i));
+					}
+					newMrX = newPlayer;
+					if(setup.rounds.get(log.size())){
+						if(move.isMoveType()) {
+							//location should return first destination
+							newLog.add(LogEntry.reveal(ticketList.get(0),newMrX.location()));
+						}else if(!move.isMoveType()){
+							newLog.add(LogEntry.reveal(ticketList.get(0), newMrX.location()));
+						}
+					}else if((!setup.rounds.get(log.size()))){
+						newLog.add(LogEntry.hidden(ticketList.get(0)));
+					}
+
+					if(move.isMoveType()) {
+						if (setup.rounds.get(log.size() + 1)) {
+							newLog.add(LogEntry.reveal(ticketList.get(0), newMrX.location()));
+						} else if ((!setup.rounds.get(log.size() + 1))) {
+							newLog.add(LogEntry.hidden(ticketList.get(0)));
+						}
+					}
+				} else if(newPlayer.piece().isDetective()) {
+					if (remaining.contains(mrX.piece())) {
+						newRemaining.add(mrX.piece());
+					}
+
+					for (int i = 0; i < detectives.size(); i++) {
+						if(remaining.contains(detectives.get(i).piece()) && detectives.get(i).piece() !=
+								newPlayer.piece()) {
+							newRemaining.add(detectives.get(i).piece());
+						}
+					}
+
+
+
+					remaining = ImmutableSet.copyOf(newRemaining);
+
+				}
+
+			}
+
+			for (int i = 0; i < detectives.size(); i++) {
+				if(detectives.get(i).piece() != move.commencedBy()) {
+					newDetectives.add(detectives.get(i));
+				} else if (detectives.get(i).piece() == move.commencedBy()) {
+					//newDetectives.add(newPlayer);
+					newDetectives.add(updatePlayer(detectives.get(i), ticketList, move.getDestination(), false));
 				}
 			}
+
+			return new MyGameState(setup, ImmutableSet.copyOf(newRemaining), ImmutableList.copyOf(newLog), newMrX, newDetectives);
+		}
+
+		public Player updatePlayer(Player player, List<ScotlandYard.Ticket> ticketList, int newLocation,
+								   boolean isIncreasing) {
+			int newTaxi = player.tickets().get(TAXI);
+			int newBus = player.tickets().get(BUS);
+			int newUnderground = player.tickets().get(UNDERGROUND);
+			int newSecret = player.tickets().get(SECRET);
+			int newDouble = player.tickets().get(DOUBLE);
+
+			for (int i = 0; i < ticketList.size(); i++) {
+				if (ticketList.get(i) == TAXI) {
+					if (isIncreasing) newTaxi++;
+					else newTaxi--;
+				} else if (ticketList.get(i) == BUS) {
+					if (isIncreasing) newBus++;
+					else newBus--;
+				} else if (ticketList.get(i) == UNDERGROUND) {
+					if(isIncreasing) newUnderground++;
+					else newUnderground--;
+				} else if (ticketList.get(i) == SECRET) {
+					newSecret--;
+				} else if (ticketList.get(i) == DOUBLE) {
+					newDouble--;
+				}
+			}
+
+			return new Player(player.piece(), ImmutableMap.of(TAXI, newTaxi, BUS, newBus, UNDERGROUND, newUnderground,
+					SECRET, newSecret, DOUBLE, newDouble), newLocation);
+		}
+
+		private final class MyBoard implements TicketBoard {
+			private Player player;
+			private int taxi;
+			private int bus;
+			private int underground;
+			private int x2;
+			private int secret;
+			private MyBoard(final Player player) {
+				this.player = player;
+				this.taxi = getCount(ScotlandYard.Ticket.TAXI);
+				this.bus = getCount(ScotlandYard.Ticket.BUS);
+				this.underground = getCount(ScotlandYard.Ticket.UNDERGROUND);
+				this.x2 = getCount(ScotlandYard.Ticket.DOUBLE);
+				this.secret = getCount(ScotlandYard.Ticket.SECRET);
+			}
+
+			@Override
+			public int getCount(@Nonnull ScotlandYard.Ticket ticket) {
+				return player.tickets().get(ticket);
+			}
+		}
+
+	}
+
+	private final class MyMove implements Move {
+		private Piece piece;
+		private DoubleMove doubleMove;
+		private SingleMove singleMove;
+		private int source;
+		private int dest1;
+		private int dest2;
+		private boolean moveType;
+		private ScotlandYard.Ticket ticket1;
+		private ScotlandYard.Ticket ticket2;
+
+		private MyMove(SingleMove singleMove) {
+			this.singleMove = singleMove;
+			this.moveType = singleMove.isMoveType();
+			this.piece = commencedBy();
+			this.source = singleMove.source;
+			this.ticket1 = singleMove.ticket;
+			this.dest1 = singleMove.destination;
+		}
+
+		private MyMove(DoubleMove doubleMove) {
+			this.doubleMove = doubleMove;
+			this.moveType = doubleMove.isMoveType();
+			this.piece = commencedBy();
+			this.ticket1 = doubleMove.ticket1;
+			this.dest1 = doubleMove.destination1;
+			this.ticket2 = doubleMove.ticket2;
+			this.dest2 = doubleMove.destination2;
+		}
+
+		@Nonnull
+		@Override
+		public Piece commencedBy() {
+			if (isMoveType()) return doubleMove.piece;
+			else return singleMove.piece;
+		}
+
+		@Nonnull
+		@Override
+		public Iterable<ScotlandYard.Ticket> tickets() {
+			if (isMoveType()) return doubleMove.tickets();
+			else return singleMove.tickets();
+		}
+
+		@Override
+		public int source() {
+			if (isMoveType()) return doubleMove.source;
+			else return source;
+		}
+
+		@Override
+		public int getDestination() {
+			if (isMoveType()) return doubleMove.getDestination();
+			else return singleMove.getDestination();
+		}
+
+		@Override
+		public boolean isMoveType() {
+			return moveType;
+		}
+
+		@Override
+		public <T> T visit(Visitor<T> visitor) {
+			return null;
+		}
 	}
 
 	private static ImmutableSet<Move.SingleMove> makeSingleMoves(
@@ -225,40 +372,43 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			for(ScotlandYard.Transport t : setup.graph.edgeValueOrDefault(source,destination,ImmutableSet.of())) {
 				// TODO find out if the player has the required tickets
 				//  if it does, construct SingleMove and add it the list of moves to return
+				if(!toRemove.contains(destination) && player.has(t.requiredTicket()))
+					singleMoves.add(new Move.SingleMove(player.piece(), source, t.requiredTicket(), destination));
 			}
 			// TODO consider the rules of secret moves here
 			//  add moves to the destination via a secret ticket if there are any left with the player
+			if (player.has(SECRET)) {
+				for(ScotlandYard.Transport t : setup.graph.edgeValueOrDefault(source,destination,ImmutableSet.of())) {
+					if(!toRemove.contains(destination) && t.requiredTicket() != SECRET)
+						singleMoves.add(new Move.SingleMove(player.piece(), source, SECRET, destination));
+				}
+			}
 		}
 		return ImmutableSet.copyOf(singleMoves);
 	}
 
-//	private static ImmutableSet<Move.SingleMove> makeSingleMoves(
-//			GameSetup setup,
-//			List<Player> detectives,
-//			Player player,
-//			int source){
-//		final var singleMoves = new ArrayList<Move.SingleMove>();
-//		ScotlandYard.Transport transport;
-//		List edgeValues;
-//		for(int destination : setup.graph.adjacentNodes(source)) {
-//			// TODO find out if destination is occupied by a detective
-//			//  if the location is occupied, don't add to the list of moves to return
-//			for (int i = 0; i < detectives.size(); i ++) {
-//				if(detectives.get(i).location() != destination) {
-//					edgeValues = List.copyOf(setup.graph.edgeValue(source,
-//							detectives.get(i).location()).orElse(null));
-//					for(int j = 0; j < edgeValues.size(); j++) {
-//						transport = (ScotlandYard.Transport) edgeValues.get(j);
-//						if(player.has(transport.requiredTicket())) {
-//							singleMoves.add(new Move.SingleMove(player.piece(), source, transport.requiredTicket(),
-//									detectives.get(i).location()));
-//						} else if (player.has(SECRET)) {
-//
-//						}
-//					}
-//				}
-//			}
-//		}
-//		return ImmutableSet.copyOf(singleMoves);
-//	}
+	private static ImmutableSet<Move.DoubleMove> makeDoubleMoves (
+			GameSetup setup,
+			List<Player> detectives,
+			Player player,
+			int source){
+		final var doubleMoves = new ArrayList<Move.DoubleMove>();
+		List<Move.SingleMove> dest1;
+		List<Move.SingleMove> dest2;
+		if(player.has(DOUBLE) && setup.rounds.size() > 1) {
+			dest1 = List.copyOf(makeSingleMoves(setup, detectives, player, source));
+			for(int i = 0; i < dest1.size(); i++) {
+				dest2 = List.copyOf(makeSingleMoves(setup, detectives, player, dest1.get(i).destination));
+				for (int j = 0; j < dest2.size(); j++) {
+					if (dest1.get(i).ticket == dest2.get(j).ticket && player.hasAtLeast(dest1.get(i).ticket, 2))
+						doubleMoves.add(new Move.DoubleMove(player.piece(), source, dest1.get(i).ticket,
+								dest1.get(i).destination, dest2.get(j).ticket, dest2.get(j).destination));
+					else if (dest1.get(i).ticket != dest2.get(j).ticket)
+						doubleMoves.add(new Move.DoubleMove(player.piece(), source, dest1.get(i).ticket,
+								dest1.get(i).destination, dest2.get(j).ticket, dest2.get(j).destination));
+				}
+			}
+		}
+		return ImmutableSet.copyOf(doubleMoves);
+	}
 }
