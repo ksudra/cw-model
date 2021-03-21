@@ -179,7 +179,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 						newLog.add(log.get(i));
 					}
 
-					if (remaining.contains(newPlayer.piece()) && newPlayer.piece().isMrX()) {
+					if (newPlayer.piece().isMrX()) {
 						for (int i = 0; i < detectives.size(); i++) {
 							newRemaining.add(detectives.get(i).piece());
 							newDetectives.add(detectives.get(i));
@@ -201,7 +201,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 								newLog.add(LogEntry.reveal(ticketList.get(1), newMrX.location()));
 							}
 						}
-					} else if(remaining.contains(newPlayer.piece()) && newPlayer.piece().isDetective()) {
+					} else if(newPlayer.piece().isDetective()) {
 						if (remaining.contains(mrX.piece())) {
 							newRemaining.add(mrX.piece());
 						}
@@ -226,6 +226,14 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					}
 
 				}
+				if (!newDetectives.isEmpty()) {
+					for (int i = 0; i < detectives.size(); i++) {
+						System.out.println(detectives.get(i));
+					}
+				} else {
+					System.out.println("empty");
+				}
+
 				return new MyGameState(setup, ImmutableSet.copyOf(newRemaining), ImmutableList.copyOf(newLog), newMrX, newDetectives);
 			}
 
