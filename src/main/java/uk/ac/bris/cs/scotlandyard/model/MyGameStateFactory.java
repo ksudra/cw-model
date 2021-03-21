@@ -32,16 +32,16 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		return new MyGameState(setup, ImmutableSet.of(Piece.MrX.MRX), ImmutableList.of(), mrX, detectives);
 	}
 
-//	private class that implements methods of the GameState interface.
-		private final class MyGameState implements GameState {
-			private GameSetup setup;
-			private ImmutableSet<Piece> remaining;
-			private ImmutableList<LogEntry> log;
-			private Player mrX;
-			private List<Player> detectives;
-			private ImmutableList<Player> everyone;
-			private ImmutableSet<Move> moves;
-			private ImmutableSet<Piece> winner;
+	//	private class that implements methods of the GameState interface.
+	private final class MyGameState implements GameState {
+		private GameSetup setup;
+		private ImmutableSet<Piece> remaining;
+		private ImmutableList<LogEntry> log;
+		private Player mrX;
+		private List<Player> detectives;
+		private ImmutableList<Player> everyone;
+		private ImmutableSet<Move> moves;
+		private ImmutableSet<Piece> winner;
 
 		private MyGameState(
 				final GameSetup setup,
@@ -76,213 +76,213 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			this.moves = getAvailableMoves();
 		}
 
-			@Override
-			public GameSetup getSetup() {
-				return setup;
-			}
+		@Override
+		public GameSetup getSetup() {
+			return setup;
+		}
 
-			@Override
-			public ImmutableSet<Piece> getPlayers() {
-				Set<Piece> players = new HashSet<>();
-				players.add(mrX.piece());
-				for (int i = 0; i < detectives.size(); i++) {
-					players.add(detectives.get(i).piece());
+		@Override
+		public ImmutableSet<Piece> getPlayers() {
+			Set<Piece> players = new HashSet<>();
+			players.add(mrX.piece());
+			for (int i = 0; i < detectives.size(); i++) {
+				players.add(detectives.get(i).piece());
+			}
+			return ImmutableSet.copyOf(players);
+		}
+
+		@Override
+		public Optional<Integer> getDetectiveLocation(Piece.Detective detective) {
+			for(int i = 0; i < detectives.size(); i++) {
+				if(detectives.get(i).piece() == detective) {
+					return Optional.of(Optional.of(detectives.get(i).location())).orElse(Optional.empty());
 				}
-				return ImmutableSet.copyOf(players);
 			}
+			return Optional.empty();
+		}
 
-			@Override
-			public Optional<Integer> getDetectiveLocation(Piece.Detective detective) {
+		@Override
+		public Optional<TicketBoard> getPlayerTickets(Piece piece) {
+			if(piece.isMrX()) {
+				return Optional.of(new MyBoard(mrX));
+			} else {
 				for(int i = 0; i < detectives.size(); i++) {
-					if(detectives.get(i).piece() == detective) {
-						return Optional.of(Optional.of(detectives.get(i).location())).orElse(Optional.empty());
+					if(detectives.get(i).piece() == piece) {
+						return Optional.of(new MyBoard(detectives.get(i)));
 					}
 				}
-				return Optional.empty();
 			}
+			return Optional.empty();
+		}
 
-			@Override
-			public Optional<TicketBoard> getPlayerTickets(Piece piece) {
-				if(piece.isMrX()) {
-					return Optional.of(new MyBoard(mrX));
+		@Override
+		public ImmutableList<LogEntry> getMrXTravelLog() {
+			return log;
+		}
+
+		//			MrX can't win
+		@Override
+		public ImmutableSet<Piece> getWinner() {
+			List<Piece> winners = new ArrayList<>();
+			for (int i = 0; i < detectives.size(); i++) {
+				if(detectives.get(i).location() == mrX.location()) {
+					for (int j = 0; i < detectives.size(); j++) {
+						winners.add(detectives.get(j).piece());
+					}
+				}
+			}
+			return ImmutableSet.copyOf(winners);
+		}
+
+		@Override
+		public ImmutableSet<Move> getAvailableMoves() {
+			Set<Move> moves = new HashSet<>();
+			for (int i = 0; i < detectives.size(); i++) {
+				if (remaining.contains(detectives.get(i).piece())) {
+					moves.addAll(makeSingleMoves(setup, detectives, detectives.get(i), detectives.get(i).location()));
+				}
+			} if(remaining.contains(mrX.piece())) {
+				moves.addAll(makeSingleMoves(setup, detectives, mrX, mrX.location()));
+				moves.addAll(makeDoubleMoves(setup, detectives, mrX, mrX.location()));
+			}
+			return ImmutableSet.copyOf(moves);
+		}
+
+		@Override
+		public GameState advance(Move move) {
+			Player newPlayer = null;
+			Player newMrX = mrX;
+			List<Player> newDetectives = new ArrayList<>();
+			Map<ScotlandYard.Ticket, Integer> newTickets = new HashMap<>();
+			Map<ScotlandYard.Ticket, Integer> mrXTickets = new HashMap<>();
+			List<ScotlandYard.Ticket> ticketList = new ArrayList<>();
+			List<LogEntry> newLog = new ArrayList<>();
+			Set<Piece> newRemaining = new HashSet<>();
+
+			ticketList = StreamSupport.stream(move.tickets().spliterator(), false)
+					.collect(Collectors.toList());
+
+			if (remaining.contains(move.commencedBy())) {
+				if (!getAvailableMoves().contains(move)) throw new IllegalArgumentException("Illegal move: " + move);
+				if (move.commencedBy().isMrX()) {
+					newPlayer = updatePlayer(mrX, ticketList, move.getDestination(), false);
 				} else {
-					for(int i = 0; i < detectives.size(); i++) {
-						if(detectives.get(i).piece() == piece) {
-							return Optional.of(new MyBoard(detectives.get(i)));
+					for (int i = 0; i < detectives.size(); i++) {
+						if (move.commencedBy() == detectives.get(i).piece()) {
+							newPlayer = updatePlayer(detectives.get(i), ticketList, move.getDestination(), false);
 						}
 					}
+					newMrX = updatePlayer(mrX, ticketList, move.getDestination(), true);
 				}
-				return Optional.empty();
-			}
 
-			@Override
-			public ImmutableList<LogEntry> getMrXTravelLog() {
-				return log;
-			}
+				for (int i = 0; i < log.size(); i++) {
+					newLog.add(log.get(i));
+				}
 
-//			MrX can't win
-			@Override
-			public ImmutableSet<Piece> getWinner() {
-				List<Piece> winners = new ArrayList<>();
-				for (int i = 0; i < detectives.size(); i++) {
-					if(detectives.get(i).location() == mrX.location()) {
-						for (int j = 0; i < detectives.size(); j++) {
-							winners.add(detectives.get(j).piece());
+				if (newPlayer.piece().isMrX()) {
+					for (int i = 0; i < detectives.size(); i++) {
+						newRemaining.add(detectives.get(i).piece());
+						//newDetectives.add(detectives.get(i));
+					}
+					newMrX = newPlayer;
+
+					if(setup.rounds.get(log.size())) {
+						if(!move.isMoveType()) {
+							newLog.add(LogEntry.reveal(ticketList.get(0), newMrX.location()));
+						} else {
+							newLog.add(LogEntry.reveal(ticketList.get(0), ((Move.DoubleMove) move).destination1));
+							newLog.add(LogEntry.reveal(ticketList.get(1), newMrX.location()));
+						}
+					} else if(!setup.rounds.get(log.size())) {
+						if(!move.isMoveType()) {
+							newLog.add(LogEntry.hidden(ticketList.get(0)));
+						} else {
+							newLog.add(LogEntry.reveal(ticketList.get(0), ((Move.DoubleMove) move).destination1));
+							newLog.add(LogEntry.reveal(ticketList.get(1), newMrX.location()));
 						}
 					}
-				}
-				return ImmutableSet.copyOf(winners);
-			}
-
-			@Override
-			public ImmutableSet<Move> getAvailableMoves() {
-				Set<Move> moves = new HashSet<>();
-				for (int i = 0; i < detectives.size(); i++) {
-					if (remaining.contains(detectives.get(i).piece())) {
-						moves.addAll(makeSingleMoves(setup, detectives, detectives.get(i), detectives.get(i).location()));
-					}
-				} if(remaining.contains(mrX.piece())) {
-					moves.addAll(makeSingleMoves(setup, detectives, mrX, mrX.location()));
-					moves.addAll(makeDoubleMoves(setup, detectives, mrX, mrX.location()));
-				}
-				return ImmutableSet.copyOf(moves);
-			}
-
-			@Override
-			public GameState advance(Move move) {
-				Player newPlayer = null;
-				Player newMrX = mrX;
-				List<Player> newDetectives = new ArrayList<>();
-				Map<ScotlandYard.Ticket, Integer> newTickets = new HashMap<>();
-				Map<ScotlandYard.Ticket, Integer> mrXTickets = new HashMap<>();
-				List<ScotlandYard.Ticket> ticketList = new ArrayList<>();
-				List<LogEntry> newLog = new ArrayList<>();
-				Set<Piece> newRemaining = new HashSet<>();
-
-				ticketList = StreamSupport.stream(move.tickets().spliterator(), false)
-						.collect(Collectors.toList());
-
-				if (remaining.contains(move.commencedBy())) {
-					if (!getAvailableMoves().contains(move)) throw new IllegalArgumentException("Illegal move: " + move);
-					if (move.commencedBy().isMrX()) {
-						newPlayer = updatePlayer(mrX, ticketList, move.getDestination(), false);
-					} else {
-						for (int i = 0; i < detectives.size(); i++) {
-							if (move.commencedBy() == detectives.get(i).piece()) {
-								newPlayer = updatePlayer(detectives.get(i), ticketList, move.getDestination(), false);
-							}
-						}
-						newMrX = updatePlayer(mrX, ticketList, move.getDestination(), true);
+				} else if(newPlayer.piece().isDetective()) {
+					if (remaining.contains(mrX.piece())) {
+						newRemaining.add(mrX.piece());
 					}
 
-					for (int i = 0; i < log.size(); i++) {
-						newLog.add(log.get(i));
-					}
-
-					if (newPlayer.piece().isMrX()) {
-						for (int i = 0; i < detectives.size(); i++) {
+					for (int i = 0; i < detectives.size(); i++) {
+						if(remaining.contains(detectives.get(i).piece()) && detectives.get(i).piece() !=
+								newPlayer.piece()) {
 							newRemaining.add(detectives.get(i).piece());
-							//newDetectives.add(detectives.get(i));
 						}
-						newMrX = newPlayer;
-
-						if(setup.rounds.get(log.size())) {
-							if(!move.isMoveType()) {
-								newLog.add(LogEntry.reveal(ticketList.get(0), newMrX.location()));
-							} else {
-								newLog.add(LogEntry.reveal(ticketList.get(0), ((Move.DoubleMove) move).destination1));
-								newLog.add(LogEntry.reveal(ticketList.get(1), newMrX.location()));
-							}
-						} else if(!setup.rounds.get(log.size())) {
-							if(!move.isMoveType()) {
-								newLog.add(LogEntry.hidden(ticketList.get(0)));
-							} else {
-								newLog.add(LogEntry.reveal(ticketList.get(0), ((Move.DoubleMove) move).destination1));
-								newLog.add(LogEntry.reveal(ticketList.get(1), newMrX.location()));
-							}
-						}
-					} else if(newPlayer.piece().isDetective()) {
-						if (remaining.contains(mrX.piece())) {
-							newRemaining.add(mrX.piece());
-						}
-
-						for (int i = 0; i < detectives.size(); i++) {
-							if(remaining.contains(detectives.get(i).piece()) && detectives.get(i).piece() !=
-									newPlayer.piece()) {
-								newRemaining.add(detectives.get(i).piece());
-							}
-						}
-
-
-
-						remaining = ImmutableSet.copyOf(newRemaining);
-
 					}
 
+
+
+					remaining = ImmutableSet.copyOf(newRemaining);
+
 				}
 
-				for (int i = 0; i < detectives.size(); i++) {
-					if(detectives.get(i).piece() != move.commencedBy()) {
-						newDetectives.add(detectives.get(i));
-					} else if (detectives.get(i).piece() == move.commencedBy()) {
-						//newDetectives.add(newPlayer);
-						newDetectives.add(updatePlayer(detectives.get(i), ticketList, move.getDestination(), false));
-					}
-				}
-
-				return new MyGameState(setup, ImmutableSet.copyOf(newRemaining), ImmutableList.copyOf(newLog), newMrX, newDetectives);
 			}
 
-			public Player updatePlayer(Player player, List<ScotlandYard.Ticket> ticketList, int newLocation,
-									   boolean isIncreasing) {
-				int newTaxi = player.tickets().get(TAXI);
-				int newBus = player.tickets().get(BUS);
-				int newUnderground = player.tickets().get(UNDERGROUND);
-				int newSecret = player.tickets().get(SECRET);
-				int newDouble = player.tickets().get(DOUBLE);
-
-				for (int i = 0; i < ticketList.size(); i++) {
-					if (ticketList.get(i) == TAXI) {
-						if (isIncreasing) newTaxi++;
-						else newTaxi--;
-					} else if (ticketList.get(i) == BUS) {
-						if (isIncreasing) newBus++;
-						else newBus--;
-					} else if (ticketList.get(i) == UNDERGROUND) {
-						if(isIncreasing) newUnderground++;
-						else newUnderground--;
-					} else if (ticketList.get(i) == SECRET) {
-						newSecret--;
-					} else if (ticketList.get(i) == DOUBLE) {
-						newDouble--;
-					}
-				}
-
-				return new Player(player.piece(), ImmutableMap.of(TAXI, newTaxi, BUS, newBus, UNDERGROUND, newUnderground,
-						SECRET, newSecret, DOUBLE, newDouble), newLocation);
-			}
-
-			private final class MyBoard implements TicketBoard {
-				private Player player;
-				private int taxi;
-				private int bus;
-				private int underground;
-				private int x2;
-				private int secret;
-				private MyBoard(final Player player) {
-					this.player = player;
-					this.taxi = getCount(ScotlandYard.Ticket.TAXI);
-					this.bus = getCount(ScotlandYard.Ticket.BUS);
-					this.underground = getCount(ScotlandYard.Ticket.UNDERGROUND);
-					this.x2 = getCount(ScotlandYard.Ticket.DOUBLE);
-					this.secret = getCount(ScotlandYard.Ticket.SECRET);
-				}
-
-				@Override
-				public int getCount(@Nonnull ScotlandYard.Ticket ticket) {
-					return player.tickets().get(ticket);
+			for (int i = 0; i < detectives.size(); i++) {
+				if(detectives.get(i).piece() != move.commencedBy()) {
+					newDetectives.add(detectives.get(i));
+				} else if (detectives.get(i).piece() == move.commencedBy()) {
+					//newDetectives.add(newPlayer);
+					newDetectives.add(updatePlayer(detectives.get(i), ticketList, move.getDestination(), false));
 				}
 			}
+
+			return new MyGameState(setup, ImmutableSet.copyOf(newRemaining), ImmutableList.copyOf(newLog), newMrX, newDetectives);
+		}
+
+		public Player updatePlayer(Player player, List<ScotlandYard.Ticket> ticketList, int newLocation,
+								   boolean isIncreasing) {
+			int newTaxi = player.tickets().get(TAXI);
+			int newBus = player.tickets().get(BUS);
+			int newUnderground = player.tickets().get(UNDERGROUND);
+			int newSecret = player.tickets().get(SECRET);
+			int newDouble = player.tickets().get(DOUBLE);
+
+			for (int i = 0; i < ticketList.size(); i++) {
+				if (ticketList.get(i) == TAXI) {
+					if (isIncreasing) newTaxi++;
+					else newTaxi--;
+				} else if (ticketList.get(i) == BUS) {
+					if (isIncreasing) newBus++;
+					else newBus--;
+				} else if (ticketList.get(i) == UNDERGROUND) {
+					if(isIncreasing) newUnderground++;
+					else newUnderground--;
+				} else if (ticketList.get(i) == SECRET) {
+					newSecret--;
+				} else if (ticketList.get(i) == DOUBLE) {
+					newDouble--;
+				}
+			}
+
+			return new Player(player.piece(), ImmutableMap.of(TAXI, newTaxi, BUS, newBus, UNDERGROUND, newUnderground,
+					SECRET, newSecret, DOUBLE, newDouble), newLocation);
+		}
+
+		private final class MyBoard implements TicketBoard {
+			private Player player;
+			private int taxi;
+			private int bus;
+			private int underground;
+			private int x2;
+			private int secret;
+			private MyBoard(final Player player) {
+				this.player = player;
+				this.taxi = getCount(ScotlandYard.Ticket.TAXI);
+				this.bus = getCount(ScotlandYard.Ticket.BUS);
+				this.underground = getCount(ScotlandYard.Ticket.UNDERGROUND);
+				this.x2 = getCount(ScotlandYard.Ticket.DOUBLE);
+				this.secret = getCount(ScotlandYard.Ticket.SECRET);
+			}
+
+			@Override
+			public int getCount(@Nonnull ScotlandYard.Ticket ticket) {
+				return player.tickets().get(ticket);
+			}
+		}
 
 	}
 
