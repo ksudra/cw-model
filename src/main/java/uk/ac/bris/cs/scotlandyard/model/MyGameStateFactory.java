@@ -150,70 +150,31 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 			@Override
 			public GameState advance(Move move) {
-				Player newPlayer;
+				Player newPlayer = null;
 				Player newMrX = mrX;
 				List<Player> newDetectives = new ArrayList<>();
 				Map<ScotlandYard.Ticket, Integer> newTickets = new HashMap<>();
+				Map<ScotlandYard.Ticket, Integer> mrXTickets = new HashMap<>();
 				List<ScotlandYard.Ticket> ticketList = new ArrayList<>();
 				List<LogEntry> newLog = new ArrayList<>();
 				Set<Piece> newRemaining = new HashSet<>();
 
-				if (!getAvailableMoves().contains(move))
-					throw new IllegalArgumentException("Illegal move: " + move);
+				ticketList = StreamSupport.stream(move.tickets().spliterator(), false)
+						.collect(Collectors.toList());
 
 				if (remaining.contains(move.commencedBy())) {
+					if (!getAvailableMoves().contains(move)) throw new IllegalArgumentException("Illegal move: " + move);
 					if (move.commencedBy().isMrX()) {
-						newTickets = Map.copyOf(mrX.tickets());
+						newPlayer = updatePlayer(mrX, ticketList, move.getDestination(), false);
 					} else {
 						for (int i = 0; i < detectives.size(); i++) {
-							if (move.commencedBy() == detectives.get(i).piece()) newTickets =
-									Map.copyOf(detectives.get(i).tickets());
+							if (move.commencedBy() == detectives.get(i).piece()) {
+								newPlayer = updatePlayer(detectives.get(i), ticketList, move.getDestination(), false);
+							}
 						}
+						newMrX = updatePlayer(mrX, ticketList, move.getDestination(), true);
 					}
 
-					int newTaxi = newTickets.get(TAXI);
-					int newBus = newTickets.get(BUS);
-					int newUnderground = newTickets.get(UNDERGROUND);
-					int newSecret = newTickets.get(SECRET);
-					int newDouble = newTickets.get(DOUBLE);
-
-					System.out.println(newTaxi);
-					System.out.println(newBus);
-					System.out.println(newUnderground);
-					System.out.println(newSecret);
-					System.out.println(newDouble);
-
-					ticketList = StreamSupport.stream(move.tickets().spliterator(), false)
-							.collect(Collectors.toList());
-
-					for (int i = 0; i < ticketList.size(); i++) {
-						System.out.println(ticketList.get(i));
-					}
-
-					for (int i = 0; i < ticketList.size(); i++) {
-						if (ticketList.get(i) == TAXI) {
-							newTaxi--;
-						} else if (ticketList.get(i) == BUS) {
-							newBus--;
-						} else if (ticketList.get(i) == UNDERGROUND) {
-							newUnderground--;
-						} else if (ticketList.get(i) == SECRET) {
-							newSecret--;
-						} else if (ticketList.get(i) == DOUBLE) {
-							newDouble--;
-						}
-					}
-
-					newTickets = ImmutableMap.of(TAXI, newTaxi, BUS, newBus, UNDERGROUND, newUnderground, SECRET, newSecret,
-							DOUBLE, newDouble);
-					System.out.println(newTaxi);
-					System.out.println(newBus);
-					System.out.println(newUnderground);
-					System.out.println(newSecret);
-					System.out.println(newDouble);
-
-
-					newPlayer = new Player(move.commencedBy(), ImmutableMap.copyOf(newTickets), move.getDestination());
 					for (int i = 0; i < log.size(); i++) {
 						newLog.add(log.get(i));
 					}
@@ -249,9 +210,13 @@ public final class MyGameStateFactory implements Factory<GameState> {
 							if(remaining.contains(detectives.get(i).piece()) && detectives.get(i).piece() !=
 									newPlayer.piece()) {
 								newRemaining.add(detectives.get(i).piece());
+							}
+						}
+
+						for (int i = 0; i < detectives.size(); i++) {
+							if(detectives.get(i).piece() != newPlayer.piece()) {
 								newDetectives.add(detectives.get(i));
-							} else if (remaining.contains(detectives.get(i).piece()) && detectives.get(i).piece() ==
-									newPlayer.piece()) {
+							} else if (detectives.get(i).piece() == newPlayer.piece()) {
 								newDetectives.add(newPlayer);
 							}
 						}
@@ -264,7 +229,34 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				return new MyGameState(setup, ImmutableSet.copyOf(newRemaining), ImmutableList.copyOf(newLog), newMrX, newDetectives);
 			}
 
+			public Player updatePlayer(Player player, List<ScotlandYard.Ticket> ticketList, int newLocation,
+									   boolean isIncreasing) {
+				int newTaxi = player.tickets().get(TAXI);
+				int newBus = player.tickets().get(BUS);
+				int newUnderground = player.tickets().get(UNDERGROUND);
+				int newSecret = player.tickets().get(SECRET);
+				int newDouble = player.tickets().get(DOUBLE);
 
+				for (int i = 0; i < ticketList.size(); i++) {
+					if (ticketList.get(i) == TAXI) {
+						if (isIncreasing) newTaxi++;
+						else newTaxi--;
+					} else if (ticketList.get(i) == BUS) {
+						if (isIncreasing) newBus++;
+						else newBus--;
+					} else if (ticketList.get(i) == UNDERGROUND) {
+						if(isIncreasing) newUnderground++;
+						else newUnderground--;
+					} else if (ticketList.get(i) == SECRET) {
+						newSecret--;
+					} else if (ticketList.get(i) == DOUBLE) {
+						newDouble--;
+					}
+				}
+
+				return new Player(player.piece(), ImmutableMap.of(TAXI, newTaxi, BUS, newBus, UNDERGROUND, newUnderground,
+						SECRET, newSecret, DOUBLE, newDouble), newLocation);
+			}
 
 			private final class MyBoard implements TicketBoard {
 				private Player player;
@@ -287,6 +279,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					return player.tickets().get(ticket);
 				}
 			}
+
 	}
 
 	private final class MyMove implements Move {
