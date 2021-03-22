@@ -133,26 +133,20 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
         @Override
         public ImmutableSet<Move> getAvailableMoves() {
-            List<Player> AvailablePlayers = WhoseTurnIsIt();
             Set<Move> moves = new HashSet<>();
-            if(AvailablePlayers.contains(mrX)){
+            if (remaining.contains(mrX.piece())) {
                 moves.addAll(makeSingleMoves(setup, detectives, mrX, mrX.location()));
                 moves.addAll(makeDoubleMoves(setup, detectives, mrX, mrX.location()));
-            }else {
-                for(Player player : AvailablePlayers){
-                    moves.addAll(makeSingleMoves(setup, detectives, player, player.location()));
+            } else if (!remaining.contains(mrX.piece())) {
+                for (int i = 0; i < detectives.size(); i++) {
+                    if (remaining.contains(detectives.get(i).piece())) {
+                        moves.addAll(makeSingleMoves(setup, detectives, detectives.get(i), detectives.get(i).location()));
+                    }
                 }
             }
-           /* for (int i = 0; i < detectives.size(); i++) {
-                if (remaining.contains(detectives.get(i).piece())) {
-                    moves.addAll(makeSingleMoves(setup, detectives, detectives.get(i), detectives.get(i).location()));
-                }
-            } if(remaining.contains(mrX.piece())) {
-                moves.addAll(makeSingleMoves(setup, detectives, mrX, mrX.location()));
-                moves.addAll(makeDoubleMoves(setup, detectives, mrX, mrX.location()));
-            }
-            return ImmutableSet.copyOf(moves);
-        }*/
+                return ImmutableSet.copyOf(moves);
+
+        }
 
         @Override
         public GameState advance(Move move) {
@@ -407,9 +401,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
             return null;
         }
     }
-        public static List<Player> WhoseTurnIsIt(){
 
-        }
 
         private static ImmutableSet<Move.SingleMove> makeSingleMoves(
             GameSetup setup,
