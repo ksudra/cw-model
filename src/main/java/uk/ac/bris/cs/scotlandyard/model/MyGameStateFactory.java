@@ -122,6 +122,13 @@ public final class MyGameStateFactory implements Factory<GameState> {
         public ImmutableSet<Piece> getWinner() {
             List<Piece> winners = new ArrayList<>();
             ImmutableSet<Move> AvailableMoves = getAvailableMoves();
+            for (int i = 0; i < detectives.size(); i++) {
+                if(detectives.get(i).location() == mrX.location()) {
+                    for (int j = 0; i < detectives.size(); j++) {
+                        winners.add(detectives.get(j).piece());
+                    }
+                }
+            }
             if(AvailableMoves.isEmpty()){
                 if(!remaining.contains(mrX.piece())){
                     winners.add(mrX.piece());
