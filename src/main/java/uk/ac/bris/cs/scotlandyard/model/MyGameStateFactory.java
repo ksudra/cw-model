@@ -71,6 +71,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
                         IllegalArgumentException("There are duplicate locations");
             }
             this.moves = getAvailableMoves();
+            this.winner = getWinner();
         }
 
         @Override
@@ -137,22 +138,24 @@ public final class MyGameStateFactory implements Factory<GameState> {
                         winners.add(detectives.get(i).piece());
                 }
             }
-            return ImmutableSet.copyOf(winners);
+                return ImmutableSet.copyOf(winners);
         }
 
         @Override
         public ImmutableSet<Move> getAvailableMoves() {
             Set<Move> moves = new HashSet<>();
-            if (remaining.contains(mrX.piece())) {
-                moves.addAll(makeSingleMoves(setup, detectives, mrX, mrX.location()));
-                moves.addAll(makeDoubleMoves(setup, detectives, mrX, mrX.location()));
-            } else if (!remaining.contains(mrX.piece())) {
-                for (int i = 0; i < detectives.size(); i++) {
-                    if (remaining.contains(detectives.get(i).piece())) {
-                        moves.addAll(makeSingleMoves(setup, detectives, detectives.get(i), detectives.get(i).location()));
+            //if(winner.isEmpty()) {
+                if (remaining.contains(mrX.piece())) {
+                    moves.addAll(makeSingleMoves(setup, detectives, mrX, mrX.location()));
+                    moves.addAll(makeDoubleMoves(setup, detectives, mrX, mrX.location()));
+                } else if (!remaining.contains(mrX.piece())) {
+                    for (int i = 0; i < detectives.size(); i++) {
+                        if (remaining.contains(detectives.get(i).piece())) {
+                            moves.addAll(makeSingleMoves(setup, detectives, detectives.get(i), detectives.get(i).location()));
+                        }
                     }
                 }
-            }
+           // }
                 return ImmutableSet.copyOf(moves);
 
         }
