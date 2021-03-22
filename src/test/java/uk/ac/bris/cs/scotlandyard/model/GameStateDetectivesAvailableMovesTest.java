@@ -57,7 +57,6 @@ public class GameStateDetectivesAvailableMovesTest extends ParameterisedModelTes
 		var blue = new Player(BLUE, defaultDetectiveTickets(), 94);
 		var white = new Player(WHITE, defaultDetectiveTickets(), 50);
 		var yellow = new Player(YELLOW, defaultDetectiveTickets(), 138);
-
 		GameState state = gameStateFactory.build(standard24RoundSetup(),
 				mrX, red, green, blue, white, yellow);
 		state = state

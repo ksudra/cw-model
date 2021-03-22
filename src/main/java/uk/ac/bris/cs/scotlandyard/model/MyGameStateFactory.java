@@ -39,6 +39,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		private ImmutableList<LogEntry> log;
 		private Player mrX;
 		private List<Player> detectives;
+		private int currentRound;
 		private ImmutableList<Player> everyone;
 		private ImmutableSet<Move> moves;
 		private ImmutableSet<Piece> winner;
@@ -150,6 +151,13 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 		@Override
 		public GameState advance(Move move) {
+			for (int i = 0; i < getAvailableMoves().size(); i++) {
+//			for (int j = 0; j < state.getAvailableMoves().size(); j++) {
+//				System.out.println(getAvailableMoves().asList().get(i));
+//
+			}
+			if(!moves.contains(move)) throw new IllegalArgumentException("Illegal move: "+move);
+
 			Player newPlayer = null;
 			Player newMrX = mrX;
 			List<Player> newDetectives = new ArrayList<>();
@@ -162,46 +170,80 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			ticketList = StreamSupport.stream(move.tickets().spliterator(), false)
 					.collect(Collectors.toList());
 
+			newLog.addAll(log);
+			currentRound = newLog.size();
+//			for (int i = 0; i < log.size(); i++) {
+//				System.out.println(newLog.get(i));
+//			}
+//			if (!newLog.isEmpty()) System.out.println(newLog.get(currentRound));
+//			//System.out.println(setup.rounds.get(currentRound));
+//			System.out.println(currentRound);
+			//if (!newLog.isEmpty() && newLog.size() < setup.rounds.size()) System.out.println(setup.rounds.get(newLog.size() - 1));
+
 			if (remaining.contains(move.commencedBy())) {
 				if (!getAvailableMoves().contains(move)) throw new IllegalArgumentException("Illegal move: " + move);
 				if (move.commencedBy().isMrX()) {
 					newPlayer = updatePlayer(mrX, ticketList, move.getDestination(), false);
+
 				} else {
 					for (int i = 0; i < detectives.size(); i++) {
 						if (move.commencedBy() == detectives.get(i).piece()) {
 							newPlayer = updatePlayer(detectives.get(i), ticketList, move.getDestination(), false);
+
 						}
 					}
-					newMrX = updatePlayer(mrX, ticketList, move.getDestination(), true);
+					//newMrX = updatePlayer(mrX, ticketList, move.getDestination(), true);
+					newMrX = updatePlayer(mrX, ticketList, mrX.location(), true);
 				}
 
-				for (int i = 0; i < log.size(); i++) {
-					newLog.add(log.get(i));
-				}
+//				System.out.println(move.getDestination());
+
+				//if (!newLog.isEmpty()) System.out.println(setup.rounds.get(newLog.size()));
+
+//				System.out.println(move.isMoveType());
 
 				if (newPlayer.piece().isMrX()) {
+//					System.out.println(setup.rounds.get(currentRound));
 					for (int i = 0; i < detectives.size(); i++) {
 						newRemaining.add(detectives.get(i).piece());
 						//newDetectives.add(detectives.get(i));
 					}
 					newMrX = newPlayer;
 
-					if(setup.rounds.get(log.size())) {
-						if(!move.isMoveType()) {
+
+
+					if(!move.isMoveType()) {
+//						System.out.println(currentRound);
+						if(setup.rounds.get(currentRound)) {
+
+							//System.out.println(setup.rounds.get(log.size()));
 							newLog.add(LogEntry.reveal(ticketList.get(0), newMrX.location()));
+							//System.out.println(LogEntry.reveal(ticketList.get(0), newMrX.location()));
 						} else {
-							newLog.add(LogEntry.reveal(ticketList.get(0), ((Move.DoubleMove) move).destination1));
-							newLog.add(LogEntry.reveal(ticketList.get(1), newMrX.location()));
-						}
-					} else if(!setup.rounds.get(log.size())) {
-						if(!move.isMoveType()) {
 							newLog.add(LogEntry.hidden(ticketList.get(0)));
-						} else {
-							newLog.add(LogEntry.reveal(ticketList.get(0), ((Move.DoubleMove) move).destination1));
-							newLog.add(LogEntry.reveal(ticketList.get(1), newMrX.location()));
+							//System.out.println(LogEntry.hidden(ticketList.get(0)));
 						}
+//						System.out.println(currentRound);
+						currentRound++;
+//						System.out.println(currentRound);
+					} else if(move.isMoveType()){
+						if(setup.rounds.get(currentRound)) {
+							newLog.add(LogEntry.reveal(ticketList.get(0), ((Move.DoubleMove) move).destination1));
+						} else {
+							newLog.add(LogEntry.hidden(ticketList.get(0)));
+						}
+
+						currentRound++;
+						if(setup.rounds.get(currentRound)) {
+							newLog.add(LogEntry.reveal(ticketList.get(1), newMrX.location()));
+						} else {
+							newLog.add(LogEntry.hidden(ticketList.get(1)));
+						}
+						currentRound++;
 					}
+
 				} else if(newPlayer.piece().isDetective()) {
+					currentRound = log.size();
 					if (remaining.contains(mrX.piece())) {
 						newRemaining.add(mrX.piece());
 					}
@@ -212,10 +254,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 							newRemaining.add(detectives.get(i).piece());
 						}
 					}
-
-
-
-					remaining = ImmutableSet.copyOf(newRemaining);
 
 				}
 
@@ -229,6 +267,17 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					newDetectives.add(updatePlayer(detectives.get(i), ticketList, move.getDestination(), false));
 				}
 			}
+
+//			if (!newLog.isEmpty() && newLog.size() < setup.rounds.size()) System.out.println(setup.rounds.get(currentRound));
+
+			for (int i = 0; i < newLog.size(); i++) {
+//				System.out.println(newLog.get(i));
+			}
+
+//			System.out.println(currentRound);
+			if (newRemaining.isEmpty()) newRemaining = getPlayers();
+//			System.out.println(move);
+
 
 			return new MyGameState(setup, ImmutableSet.copyOf(newRemaining), ImmutableList.copyOf(newLog), newMrX, newDetectives);
 		}
