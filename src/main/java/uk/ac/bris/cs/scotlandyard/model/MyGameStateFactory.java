@@ -35,7 +35,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		private ImmutableList<LogEntry> log;
 		private Player mrX;
 		private List<Player> detectives;
-		private int CurrentRound;
+		private int currentRound;
 		private ImmutableList<Player> everyone;
 		private ImmutableSet<Move> moves;
 		private ImmutableSet<Piece> winner;
@@ -49,27 +49,28 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			HashSet<String> uniqueDetectives = new HashSet<>();
 			HashSet<Integer> uniqueLocations = new HashSet<>();
 			this.setup = setup;
-			if(this.setup.graph.nodes().isEmpty() && this.setup.graph.edges().isEmpty()) throw new
+			if (this.setup.graph.nodes().isEmpty() && this.setup.graph.edges().isEmpty()) throw new
 					IllegalArgumentException("Graph is empty");
-			if(this.setup.rounds.isEmpty()) throw new IllegalArgumentException("Rounds is empty");
+			if (this.setup.rounds.isEmpty()) throw new IllegalArgumentException("Rounds is empty");
 			this.remaining = remaining;
 			this.log = log;
 			this.mrX = mrX;
-			if(this.mrX == null) throw new NullPointerException("Mr.X is null");
-			if(!this.mrX.isMrX()) throw new IllegalArgumentException("There is no Mr.X");
+			if (this.mrX == null) throw new NullPointerException("Mr.X is null");
+			if (!this.mrX.isMrX()) throw new IllegalArgumentException("There is no Mr.X");
 			this.detectives = detectives;
-			if(this.detectives.isEmpty()) throw new IllegalArgumentException("There are no detectives");
-			for(int i = 0; i < detectives.size(); i++) {
-				if(detectives.get(i).piece() == null) throw new NullPointerException("Detective is null");
-				if(detectives.get(i).has(ScotlandYard.Ticket.DOUBLE)) throw new
+			if (this.detectives.isEmpty()) throw new IllegalArgumentException("There are no detectives");
+			for (int i = 0; i < detectives.size(); i++) {
+				if (detectives.get(i).piece() == null) throw new NullPointerException("Detective is null");
+				if (detectives.get(i).has(ScotlandYard.Ticket.DOUBLE)) throw new
 						IllegalArgumentException("Detective has double ticket");
-				if(detectives.get(i).has(ScotlandYard.Ticket.SECRET)) throw new
+				if (detectives.get(i).has(ScotlandYard.Ticket.SECRET)) throw new
 						IllegalArgumentException("Detective has secret ticket");
-				if(!uniqueDetectives.add(detectives.get(i).piece().webColour())) throw new
+				if (!uniqueDetectives.add(detectives.get(i).piece().webColour())) throw new
 						IllegalArgumentException("There are duplicate detectives");
-				if(!uniqueLocations.add(detectives.get(i).location())) throw new
+				if (!uniqueLocations.add(detectives.get(i).location())) throw new
 						IllegalArgumentException("There are duplicate locations");
 			}
+			this.winner = getWinner();
 			this.moves = getAvailableMoves();
 		}
 
@@ -90,8 +91,8 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 		@Override
 		public Optional<Integer> getDetectiveLocation(Piece.Detective detective) {
-			for(int i = 0; i < detectives.size(); i++) {
-				if(detectives.get(i).piece() == detective) {
+			for (int i = 0; i < detectives.size(); i++) {
+				if (detectives.get(i).piece() == detective) {
 					return Optional.of(Optional.of(detectives.get(i).location())).orElse(Optional.empty());
 				}
 			}
@@ -100,11 +101,11 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 		@Override
 		public Optional<TicketBoard> getPlayerTickets(Piece piece) {
-			if(piece.isMrX()) {
+			if (piece.isMrX()) {
 				return Optional.of(new MyBoard(mrX));
 			} else {
-				for(int i = 0; i < detectives.size(); i++) {
-					if(detectives.get(i).piece() == piece) {
+				for (int i = 0; i < detectives.size(); i++) {
+					if (detectives.get(i).piece() == piece) {
 						return Optional.of(new MyBoard(detectives.get(i)));
 					}
 				}
@@ -121,26 +122,56 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		@Override
 		public ImmutableSet<Piece> getWinner() {
 			List<Piece> winners = new ArrayList<>();
-			for (int i = 0; i < detectives.size(); i++) {
-				if(detectives.get(i).location() == mrX.location()) {
-					for (int j = 0; i < detectives.size(); j++) {
-						winners.add(detectives.get(j).piece());
-					}
+			ImmutableSet<Move> AvailableMoves = getAvailableMoves();
+			List<Player> DetectivesWithTickets = new ArrayList<>();
+			ImmutableMap<ScotlandYard.Ticket, Integer> emptyTickets = ImmutableMap.of(TAXI, 0, BUS, 0, UNDERGROUND, 0, DOUBLE, 0, SECRET, 0);
+			System.out.println(log.size());
+			System.out.println(setup.rounds.size());
+			if (setup.rounds.size() == log.size()) {
+				System.out.println("over");
+			}
+			if (remaining.isEmpty()) {
+				System.out.println("empty");
+			}
+			if(detectives.stream().anyMatch(p -> p.location() == mrX.location())){
+				for (int j = 0; j < detectives.size(); j++) {
+					winners.add(detectives.get(j).piece());
+				}
+			}else if(detectives.stream().allMatch(p -> p.tickets().equals(emptyTickets))) {
+				winners.add(mrX.piece());
+			}else if (AvailableMoves.isEmpty()) {
+				if (!remaining.contains(mrX.piece()) || setup.rounds.size() == log.size()) {
+					winners.add(mrX.piece());
+				} else if (remaining.contains(mrX.piece())) {
+					for (int i = 0; i < detectives.size(); i++)
+						winners.add(detectives.get(i).piece());
 				}
 			}
+			else if(getAvailableMoves().isEmpty() && log.size() == setup.rounds.size()) {
+				winners.add(mrX.piece());
+			}
+
+//			else if(!remaining.isEmpty() && log.size() == setup.rounds.size()) {
+//				winners.add(mrX.piece());
+//			}
+
+
+
 			return ImmutableSet.copyOf(winners);
 		}
 
 		@Override
 		public ImmutableSet<Move> getAvailableMoves() {
 			Set<Move> moves = new HashSet<>();
-			if (remaining.contains(mrX.piece())) {
-				moves.addAll(makeSingleMoves(setup, detectives, mrX, mrX.location()));
-				moves.addAll(makeDoubleMoves(setup, detectives, mrX, mrX.location()));
-			} else if (!remaining.contains(mrX.piece())) {
-				for (int i = 0; i < detectives.size(); i++) {
-					if (remaining.contains(detectives.get(i).piece())) {
-						moves.addAll(makeSingleMoves(setup, detectives, detectives.get(i), detectives.get(i).location()));
+			if(winner == null || winner.isEmpty()){
+				if (remaining.contains(mrX.piece())) {
+					moves.addAll(makeSingleMoves(setup, detectives, mrX, mrX.location()));
+					moves.addAll(makeDoubleMoves(setup, detectives, mrX, mrX.location()));
+				} else if (!remaining.contains(mrX.piece())) {
+					for (int i = 0; i < detectives.size(); i++) {
+						if (remaining.contains(detectives.get(i).piece())) {
+							moves.addAll(makeSingleMoves(setup, detectives, detectives.get(i), detectives.get(i).location()));
+						}
 					}
 				}
 			}
@@ -170,7 +201,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					.collect(Collectors.toList());
 
 			newLog.addAll(log);
-			CurrentRound = newLog.size();
+			currentRound = newLog.size();
 //			for (int i = 0; i < log.size(); i++) {
 //				System.out.println(newLog.get(i));
 //			}
@@ -213,7 +244,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 					if(!move.isMoveType()) {
 //						System.out.println(currentRound);
-						if(setup.rounds.get(CurrentRound)) {
+						if(setup.rounds.get(currentRound)) {
 
 							//System.out.println(setup.rounds.get(log.size()));
 							newLog.add(LogEntry.reveal(ticketList.get(0), newMrX.location()));
@@ -223,26 +254,26 @@ public final class MyGameStateFactory implements Factory<GameState> {
 							//System.out.println(LogEntry.hidden(ticketList.get(0)));
 						}
 //						System.out.println(currentRound);
-						CurrentRound++;
+						currentRound++;
 //						System.out.println(currentRound);
 					} else if(move.isMoveType()){
-						if(setup.rounds.get(CurrentRound)) {
+						if(setup.rounds.get(currentRound)) {
 							newLog.add(LogEntry.reveal(ticketList.get(0), ((Move.DoubleMove) move).destination1));
 						} else {
 							newLog.add(LogEntry.hidden(ticketList.get(0)));
 						}
 
-						CurrentRound++;
-						if(setup.rounds.get(CurrentRound)) {
+						currentRound++;
+						if(setup.rounds.get(currentRound)) {
 							newLog.add(LogEntry.reveal(ticketList.get(1), newMrX.location()));
 						} else {
 							newLog.add(LogEntry.hidden(ticketList.get(1)));
 						}
-						CurrentRound++;
+						currentRound++;
 					}
 
 				} else if(newPlayer.piece().isDetective()) {
-					CurrentRound = log.size();
+					currentRound = log.size();
 					if (remaining.contains(mrX.piece())) {
 						newRemaining.add(mrX.piece());
 					}
@@ -274,7 +305,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			}
 
 //			System.out.println(currentRound);
-			if (newRemaining.isEmpty()) newRemaining = getPlayers();
+			if (newRemaining.isEmpty() && newLog.size() != setup.rounds.size()) newRemaining = getPlayers();
 //			System.out.println(move);
 
 
