@@ -131,8 +131,11 @@ public final class MyGameStateFactory implements Factory<GameState> {
                     DetectivesWithTickets.add(detective);
                 }
             }
-
-            if(DetectivesWithTickets.isEmpty()) {
+            if(detectives.stream().anyMatch(p -> p.location() == mrX.location())){
+                    for (int j = 0; j < detectives.size(); j++) {
+                        winners.add(detectives.get(j).piece());
+                    }
+            }else if(DetectivesWithTickets.isEmpty()) {
                 winners.add(mrX.piece());
             }else if (AvailableMoves.isEmpty()) {
                 if (!remaining.contains(mrX.piece())) {
@@ -143,13 +146,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
                 }
             }
 
-           for (int i = 0; i < detectives.size(); i++) {
-                if (detectives.get(i).location() == mrX.location()) {
-                    for (int j = 0; j < detectives.size(); j++) {
-                        winners.add(detectives.get(j).piece());
-                    }
-                }
-            }
+
 
 
                 return ImmutableSet.copyOf(winners);
