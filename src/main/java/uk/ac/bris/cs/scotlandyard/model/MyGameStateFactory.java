@@ -6,12 +6,8 @@ import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.graph.Graph;
-import com.google.common.graph.ImmutableValueGraph;
-import com.google.common.graph.ValueGraphBuilder;
 import uk.ac.bris.cs.scotlandyard.model.Board.GameState;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Factory;
-import java.lang.Object;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -39,7 +35,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		private ImmutableList<LogEntry> log;
 		private Player mrX;
 		private List<Player> detectives;
-		private int currentRound;
+		private int CurrentRound;
 		private ImmutableList<Player> everyone;
 		private ImmutableSet<Move> moves;
 		private ImmutableSet<Piece> winner;
@@ -138,15 +134,18 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		@Override
 		public ImmutableSet<Move> getAvailableMoves() {
 			Set<Move> moves = new HashSet<>();
-			for (int i = 0; i < detectives.size(); i++) {
-				if (remaining.contains(detectives.get(i).piece())) {
-					moves.addAll(makeSingleMoves(setup, detectives, detectives.get(i), detectives.get(i).location()));
-				}
-			} if(remaining.contains(mrX.piece())) {
+			if (remaining.contains(mrX.piece())) {
 				moves.addAll(makeSingleMoves(setup, detectives, mrX, mrX.location()));
 				moves.addAll(makeDoubleMoves(setup, detectives, mrX, mrX.location()));
+			} else if (!remaining.contains(mrX.piece())) {
+				for (int i = 0; i < detectives.size(); i++) {
+					if (remaining.contains(detectives.get(i).piece())) {
+						moves.addAll(makeSingleMoves(setup, detectives, detectives.get(i), detectives.get(i).location()));
+					}
+				}
 			}
 			return ImmutableSet.copyOf(moves);
+
 		}
 
 		@Override
@@ -171,7 +170,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					.collect(Collectors.toList());
 
 			newLog.addAll(log);
-			currentRound = newLog.size();
+			CurrentRound = newLog.size();
 //			for (int i = 0; i < log.size(); i++) {
 //				System.out.println(newLog.get(i));
 //			}
@@ -214,7 +213,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 					if(!move.isMoveType()) {
 //						System.out.println(currentRound);
-						if(setup.rounds.get(currentRound)) {
+						if(setup.rounds.get(CurrentRound)) {
 
 							//System.out.println(setup.rounds.get(log.size()));
 							newLog.add(LogEntry.reveal(ticketList.get(0), newMrX.location()));
@@ -224,26 +223,26 @@ public final class MyGameStateFactory implements Factory<GameState> {
 							//System.out.println(LogEntry.hidden(ticketList.get(0)));
 						}
 //						System.out.println(currentRound);
-						currentRound++;
+						CurrentRound++;
 //						System.out.println(currentRound);
 					} else if(move.isMoveType()){
-						if(setup.rounds.get(currentRound)) {
+						if(setup.rounds.get(CurrentRound)) {
 							newLog.add(LogEntry.reveal(ticketList.get(0), ((Move.DoubleMove) move).destination1));
 						} else {
 							newLog.add(LogEntry.hidden(ticketList.get(0)));
 						}
 
-						currentRound++;
-						if(setup.rounds.get(currentRound)) {
+						CurrentRound++;
+						if(setup.rounds.get(CurrentRound)) {
 							newLog.add(LogEntry.reveal(ticketList.get(1), newMrX.location()));
 						} else {
 							newLog.add(LogEntry.hidden(ticketList.get(1)));
 						}
-						currentRound++;
+						CurrentRound++;
 					}
 
 				} else if(newPlayer.piece().isDetective()) {
-					currentRound = log.size();
+					CurrentRound = log.size();
 					if (remaining.contains(mrX.piece())) {
 						newRemaining.add(mrX.piece());
 					}
@@ -281,6 +280,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 			return new MyGameState(setup, ImmutableSet.copyOf(newRemaining), ImmutableList.copyOf(newLog), newMrX, newDetectives);
 		}
+
 
 		public Player updatePlayer(Player player, List<ScotlandYard.Ticket> ticketList, int newLocation,
 								   boolean isIncreasing) {
@@ -401,6 +401,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return null;
 		}
 	}
+
 
 	private static ImmutableSet<Move.SingleMove> makeSingleMoves(
 			GameSetup setup,
