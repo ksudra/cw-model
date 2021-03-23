@@ -49,29 +49,29 @@ public final class MyGameStateFactory implements Factory<GameState> {
             HashSet<String> uniqueDetectives = new HashSet<>();
             HashSet<Integer> uniqueLocations = new HashSet<>();
             this.setup = setup;
-            if(this.setup.graph.nodes().isEmpty() && this.setup.graph.edges().isEmpty()) throw new
+            if (this.setup.graph.nodes().isEmpty() && this.setup.graph.edges().isEmpty()) throw new
                     IllegalArgumentException("Graph is empty");
-            if(this.setup.rounds.isEmpty()) throw new IllegalArgumentException("Rounds is empty");
+            if (this.setup.rounds.isEmpty()) throw new IllegalArgumentException("Rounds is empty");
             this.remaining = remaining;
             this.log = log;
             this.mrX = mrX;
-            if(this.mrX == null) throw new NullPointerException("Mr.X is null");
-            if(!this.mrX.isMrX()) throw new IllegalArgumentException("There is no Mr.X");
+            if (this.mrX == null) throw new NullPointerException("Mr.X is null");
+            if (!this.mrX.isMrX()) throw new IllegalArgumentException("There is no Mr.X");
             this.detectives = detectives;
-            if(this.detectives.isEmpty()) throw new IllegalArgumentException("There are no detectives");
-            for(int i = 0; i < detectives.size(); i++) {
-                if(detectives.get(i).piece() == null) throw new NullPointerException("Detective is null");
-                if(detectives.get(i).has(ScotlandYard.Ticket.DOUBLE)) throw new
+            if (this.detectives.isEmpty()) throw new IllegalArgumentException("There are no detectives");
+            for (int i = 0; i < detectives.size(); i++) {
+                if (detectives.get(i).piece() == null) throw new NullPointerException("Detective is null");
+                if (detectives.get(i).has(ScotlandYard.Ticket.DOUBLE)) throw new
                         IllegalArgumentException("Detective has double ticket");
-                if(detectives.get(i).has(ScotlandYard.Ticket.SECRET)) throw new
+                if (detectives.get(i).has(ScotlandYard.Ticket.SECRET)) throw new
                         IllegalArgumentException("Detective has secret ticket");
-                if(!uniqueDetectives.add(detectives.get(i).piece().webColour())) throw new
+                if (!uniqueDetectives.add(detectives.get(i).piece().webColour())) throw new
                         IllegalArgumentException("There are duplicate detectives");
-                if(!uniqueLocations.add(detectives.get(i).location())) throw new
+                if (!uniqueLocations.add(detectives.get(i).location())) throw new
                         IllegalArgumentException("There are duplicate locations");
             }
-            this.moves = getAvailableMoves();
             this.winner = getWinner();
+            this.moves = getAvailableMoves();
         }
 
         @Override
@@ -91,8 +91,8 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
         @Override
         public Optional<Integer> getDetectiveLocation(Piece.Detective detective) {
-            for(int i = 0; i < detectives.size(); i++) {
-                if(detectives.get(i).piece() == detective) {
+            for (int i = 0; i < detectives.size(); i++) {
+                if (detectives.get(i).piece() == detective) {
                     return Optional.of(Optional.of(detectives.get(i).location())).orElse(Optional.empty());
                 }
             }
@@ -101,11 +101,11 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
         @Override
         public Optional<TicketBoard> getPlayerTickets(Piece piece) {
-            if(piece.isMrX()) {
+            if (piece.isMrX()) {
                 return Optional.of(new MyBoard(mrX));
             } else {
-                for(int i = 0; i < detectives.size(); i++) {
-                    if(detectives.get(i).piece() == piece) {
+                for (int i = 0; i < detectives.size(); i++) {
+                    if (detectives.get(i).piece() == piece) {
                         return Optional.of(new MyBoard(detectives.get(i)));
                     }
                 }
@@ -123,28 +123,42 @@ public final class MyGameStateFactory implements Factory<GameState> {
         public ImmutableSet<Piece> getWinner() {
             List<Piece> winners = new ArrayList<>();
             ImmutableSet<Move> AvailableMoves = getAvailableMoves();
-            for (int i = 0; i < detectives.size(); i++) {
-                if(detectives.get(i).location() == mrX.location()) {
-                    for (int j = 0; i < detectives.size(); j++) {
-                        winners.add(detectives.get(j).piece());
-                    }
+            List<Player> DetectivesWithTickets = new ArrayList<>();
+            ImmutableMap<ScotlandYard.Ticket, Integer> emptyTickets = ImmutableMap.of(TAXI, 0, BUS, 0, UNDERGROUND, 0, DOUBLE, 0, SECRET, 0);
+
+            for (Player detective : detectives) {
+                if(!detective.tickets().equals(emptyTickets)){
+                    DetectivesWithTickets.add(detective);
                 }
             }
-            if(AvailableMoves.isEmpty()){
-                if(!remaining.contains(mrX.piece())){
+
+            if(DetectivesWithTickets.isEmpty()) {
+                winners.add(mrX.piece());
+            }else if (AvailableMoves.isEmpty()) {
+                if (!remaining.contains(mrX.piece())) {
                     winners.add(mrX.piece());
-                }else if(remaining.contains(mrX.piece())){
+                } else if (remaining.contains(mrX.piece())) {
                     for (int i = 0; i < detectives.size(); i++)
                         winners.add(detectives.get(i).piece());
                 }
             }
+
+           for (int i = 0; i < detectives.size(); i++) {
+                if (detectives.get(i).location() == mrX.location()) {
+                    for (int j = 0; j < detectives.size(); j++) {
+                        winners.add(detectives.get(j).piece());
+                    }
+                }
+            }
+
+
                 return ImmutableSet.copyOf(winners);
-        }
+            }
 
         @Override
         public ImmutableSet<Move> getAvailableMoves() {
             Set<Move> moves = new HashSet<>();
-            //if(winner.isEmpty()) {
+            if(winner == null || winner.isEmpty()){
                 if (remaining.contains(mrX.piece())) {
                     moves.addAll(makeSingleMoves(setup, detectives, mrX, mrX.location()));
                     moves.addAll(makeDoubleMoves(setup, detectives, mrX, mrX.location()));
@@ -155,7 +169,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
                         }
                     }
                 }
-           // }
+            }
                 return ImmutableSet.copyOf(moves);
 
         }
