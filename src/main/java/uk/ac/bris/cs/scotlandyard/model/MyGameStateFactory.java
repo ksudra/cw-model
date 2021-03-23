@@ -126,16 +126,11 @@ public final class MyGameStateFactory implements Factory<GameState> {
             List<Player> DetectivesWithTickets = new ArrayList<>();
             ImmutableMap<ScotlandYard.Ticket, Integer> emptyTickets = ImmutableMap.of(TAXI, 0, BUS, 0, UNDERGROUND, 0, DOUBLE, 0, SECRET, 0);
 
-            for (Player detective : detectives) {
-                if(!detective.tickets().equals(emptyTickets)){
-                    DetectivesWithTickets.add(detective);
-                }
-            }
             if(detectives.stream().anyMatch(p -> p.location() == mrX.location())){
                     for (int j = 0; j < detectives.size(); j++) {
                         winners.add(detectives.get(j).piece());
                     }
-            }else if(DetectivesWithTickets.isEmpty()) {
+            }else if(detectives.stream().allMatch(p -> p.tickets().equals(emptyTickets))) {
                 winners.add(mrX.piece());
             }else if (AvailableMoves.isEmpty()) {
                 if (!remaining.contains(mrX.piece())) {
