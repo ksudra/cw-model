@@ -173,7 +173,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
                         }
                     }
                 }
-                if (moves.isEmpty() && remaining.size() < detectives.size()){
+                if (moves.isEmpty() && remaining.size() < detectives.size() && log.size() < setup.rounds.size()){
                     moves.addAll(makeSingleMoves(setup, detectives, mrX, mrX.location()));
                     moves.addAll(makeDoubleMoves(setup, detectives, mrX, mrX.location()));
                 }
