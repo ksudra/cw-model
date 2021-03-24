@@ -134,6 +134,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			if (remaining.isEmpty()) {
 				System.out.println("remaining empty");
 			}
+
 			if(detectives.stream().anyMatch(p -> p.location() == mrX.location())){
 				for (int j = 0; j < detectives.size(); j++) {
 					winners.add(detectives.get(j).piece());
@@ -152,12 +153,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				winners.add(mrX.piece());
 			}
 
-//			else if(!remaining.isEmpty() && log.size() == setup.rounds.size()) {
-//				winners.add(mrX.piece());
-//			}
-
-
-
 			return ImmutableSet.copyOf(winners);
 		}
 
@@ -174,6 +169,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 							moves.addAll(makeSingleMoves(setup, detectives, detectives.get(i), detectives.get(i).location()));
 						}
 					}
+				}
+				if (moves.isEmpty() && remaining.size() < detectives.size() && log.size() < setup.rounds.size()){
+					moves.addAll(makeSingleMoves(setup, detectives, mrX, mrX.location()));
+					moves.addAll(makeDoubleMoves(setup, detectives, mrX, mrX.location()));
 				}
 			}
 			return ImmutableSet.copyOf(moves);
