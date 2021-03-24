@@ -127,11 +127,12 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			ImmutableMap<ScotlandYard.Ticket, Integer> emptyTickets = ImmutableMap.of(TAXI, 0, BUS, 0, UNDERGROUND, 0, DOUBLE, 0, SECRET, 0);
 			System.out.println(log.size());
 			System.out.println(setup.rounds.size());
-			if (setup.rounds.size() == log.size()) {
-				System.out.println("over");
+
+			if (getAvailableMoves().isEmpty()) {
+				System.out.println("moves empty");
 			}
 			if (remaining.isEmpty()) {
-				System.out.println("empty");
+				System.out.println("remaining empty");
 			}
 			if(detectives.stream().anyMatch(p -> p.location() == mrX.location())){
 				for (int j = 0; j < detectives.size(); j++) {
@@ -139,8 +140,8 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				}
 			}else if(detectives.stream().allMatch(p -> p.tickets().equals(emptyTickets))) {
 				winners.add(mrX.piece());
-			}else if (AvailableMoves.isEmpty()) {
-				if (!remaining.contains(mrX.piece()) || setup.rounds.size() == log.size()) {
+			}else if (AvailableMoves.isEmpty() && !remaining.isEmpty()) {
+				if (!remaining.contains(mrX.piece())) {
 					winners.add(mrX.piece());
 				} else if (remaining.contains(mrX.piece())) {
 					for (int i = 0; i < detectives.size(); i++)
