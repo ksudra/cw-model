@@ -35,7 +35,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
         private ImmutableList<LogEntry> log;
         private Player mrX;
         private List<Player> detectives;
-        private int CurrentRound;
+        private int currentRound;
         private ImmutableList<Player> everyone;
         private ImmutableSet<Move> moves;
         private ImmutableSet<Piece> winner;
@@ -125,27 +125,39 @@ public final class MyGameStateFactory implements Factory<GameState> {
             ImmutableSet<Move> AvailableMoves = getAvailableMoves();
             List<Player> DetectivesWithTickets = new ArrayList<>();
             ImmutableMap<ScotlandYard.Ticket, Integer> emptyTickets = ImmutableMap.of(TAXI, 0, BUS, 0, UNDERGROUND, 0, DOUBLE, 0, SECRET, 0);
-
+            if (setup.rounds.size() == log.size()) {
+                System.out.println("over");
+            }
+            if (remaining.isEmpty()) {
+                System.out.println("empty");
+            }
             if(detectives.stream().anyMatch(p -> p.location() == mrX.location())){
-                    for (int j = 0; j < detectives.size(); j++) {
-                        winners.add(detectives.get(j).piece());
-                    }
+                for (int j = 0; j < detectives.size(); j++) {
+                    winners.add(detectives.get(j).piece());
+                }
             }else if(detectives.stream().allMatch(p -> p.tickets().equals(emptyTickets))) {
                 winners.add(mrX.piece());
             }else if (AvailableMoves.isEmpty()) {
-                if (!remaining.contains(mrX.piece())) {
+                if (!remaining.contains(mrX.piece()) || setup.rounds.size() == log.size()) {
                     winners.add(mrX.piece());
+                    System.out.println("hi");
                 } else if (remaining.contains(mrX.piece())) {
                     for (int i = 0; i < detectives.size(); i++)
                         winners.add(detectives.get(i).piece());
                 }
             }
-
-
-
-
-                return ImmutableSet.copyOf(winners);
+            else if(getAvailableMoves().isEmpty() && log.size() == setup.rounds.size()) {
+                winners.add(mrX.piece());
             }
+
+//			else if(!remaining.isEmpty() && log.size() == setup.rounds.size()) {
+//				winners.add(mrX.piece());
+//			}
+
+
+
+            return ImmutableSet.copyOf(winners);
+        }
 
         @Override
         public ImmutableSet<Move> getAvailableMoves() {
@@ -161,8 +173,12 @@ public final class MyGameStateFactory implements Factory<GameState> {
                         }
                     }
                 }
+                if (moves.isEmpty() && remaining.size() < detectives.size()){
+                    moves.addAll(makeSingleMoves(setup, detectives, mrX, mrX.location()));
+                    moves.addAll(makeDoubleMoves(setup, detectives, mrX, mrX.location()));
+                }
             }
-                return ImmutableSet.copyOf(moves);
+            return ImmutableSet.copyOf(moves);
 
         }
 
@@ -188,7 +204,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
                     .collect(Collectors.toList());
 
             newLog.addAll(log);
-            CurrentRound = newLog.size();
+            currentRound = newLog.size();
 //			for (int i = 0; i < log.size(); i++) {
 //				System.out.println(newLog.get(i));
 //			}
@@ -231,7 +247,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
                     if(!move.isMoveType()) {
 //						System.out.println(currentRound);
-                        if(setup.rounds.get(CurrentRound)) {
+                        if(setup.rounds.get(currentRound)) {
 
                             //System.out.println(setup.rounds.get(log.size()));
                             newLog.add(LogEntry.reveal(ticketList.get(0), newMrX.location()));
@@ -241,26 +257,26 @@ public final class MyGameStateFactory implements Factory<GameState> {
                             //System.out.println(LogEntry.hidden(ticketList.get(0)));
                         }
 //						System.out.println(currentRound);
-                        CurrentRound++;
+                        currentRound++;
 //						System.out.println(currentRound);
                     } else if(move.isMoveType()){
-                        if(setup.rounds.get(CurrentRound)) {
+                        if(setup.rounds.get(currentRound)) {
                             newLog.add(LogEntry.reveal(ticketList.get(0), ((Move.DoubleMove) move).destination1));
                         } else {
                             newLog.add(LogEntry.hidden(ticketList.get(0)));
                         }
 
-                        CurrentRound++;
-                        if(setup.rounds.get(CurrentRound)) {
+                        currentRound++;
+                        if(setup.rounds.get(currentRound)) {
                             newLog.add(LogEntry.reveal(ticketList.get(1), newMrX.location()));
                         } else {
                             newLog.add(LogEntry.hidden(ticketList.get(1)));
                         }
-                        CurrentRound++;
+                        currentRound++;
                     }
 
                 } else if(newPlayer.piece().isDetective()) {
-                    CurrentRound = log.size();
+                    currentRound = log.size();
                     if (remaining.contains(mrX.piece())) {
                         newRemaining.add(mrX.piece());
                     }
@@ -291,8 +307,8 @@ public final class MyGameStateFactory implements Factory<GameState> {
 //				System.out.println(newLog.get(i));
             }
 
-//			System.out.println(currentRound);
-            if (newRemaining.isEmpty()) newRemaining = getPlayers();
+//			//System.out.println(currentRound);
+            if (newRemaining.isEmpty() && newLog.size() != setup.rounds.size()) newRemaining = getPlayers();
 //			System.out.println(move);
 
 
@@ -421,7 +437,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
     }
 
 
-        private static ImmutableSet<Move.SingleMove> makeSingleMoves(
+    private static ImmutableSet<Move.SingleMove> makeSingleMoves(
             GameSetup setup,
             List<Player> detectives,
             Player player,
