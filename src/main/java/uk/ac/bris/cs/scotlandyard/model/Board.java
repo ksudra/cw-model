@@ -74,6 +74,8 @@ public interface Board {
 		 * {@link #getAvailableMoves()}
 		 */
 		@Nonnull GameState advance(Move move);
+
+		Iterable<? extends Piece> getRemaining();
 	}
 
 

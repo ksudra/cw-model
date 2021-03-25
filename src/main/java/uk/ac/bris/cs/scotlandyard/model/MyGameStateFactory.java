@@ -25,7 +25,12 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			GameSetup setup,
 			Player mrX,
 			ImmutableList<Player> detectives) {
-		return new MyGameState(setup, ImmutableSet.of(Piece.MrX.MRX), ImmutableList.of(), mrX, detectives);
+		Set<Piece> remaining = new HashSet<>();
+		remaining.add(mrX.piece());
+		for (Player detective: detectives) {
+			remaining.add(detective.piece());
+		}
+		return new MyGameState(setup, ImmutableSet.copyOf(remaining), ImmutableList.of(), mrX, detectives);
 	}
 
 	//	private class that implements methods of the GameState interface.
@@ -72,6 +77,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			}
 			this.winner = getWinner();
 			this.moves = getAvailableMoves();
+		}
+
+		public ImmutableSet<Piece> getRemaining() {
+			return remaining;
 		}
 
 		@Override
@@ -125,8 +134,8 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			ImmutableSet<Move> AvailableMoves = getAvailableMoves();
 			List<Player> DetectivesWithTickets = new ArrayList<>();
 			ImmutableMap<ScotlandYard.Ticket, Integer> emptyTickets = ImmutableMap.of(TAXI, 0, BUS, 0, UNDERGROUND, 0, DOUBLE, 0, SECRET, 0);
-			System.out.println(log.size());
-			System.out.println(setup.rounds.size());
+//			System.out.println(log.size());
+//			System.out.println(setup.rounds.size());
 
 			if (getAvailableMoves().isEmpty()) {
 				System.out.println("moves empty");

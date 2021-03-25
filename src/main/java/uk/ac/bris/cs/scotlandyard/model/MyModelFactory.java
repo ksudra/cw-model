@@ -21,18 +21,21 @@ public final class MyModelFactory  implements Factory<Model> {
 	@Nonnull @Override public Model build(GameSetup setup,
 	                                      Player mrX,
 	                                      ImmutableList<Player> detectives) {
+
 		gameStateFactory.build(setup, mrX, detectives);
 
 		return new MyModel(gameStateFactory.build(setup, mrX, detectives), ImmutableSet.of());
 	}
 
 	private final class MyModel implements Model{
+		private Board board;
 		private Board.GameState state;
 		private ImmutableSet<Observer> observers;
 		private MyModel(final Board.GameState state,
 						final ImmutableSet<Observer> observers) {
 			this.state = state;
 			this.observers = observers;
+			board = getCurrentBoard();
 		}
 
 		@Nonnull
@@ -43,6 +46,7 @@ public final class MyModelFactory  implements Factory<Model> {
 
 		@Override
 		public void registerObserver(@Nonnull Observer observer) {
+			if (observers.contains(observer)) throw new IllegalArgumentException("Observer already registered");
 			Set<Observer> newObservers = new HashSet<>();
 			newObservers.addAll(observers);
 			newObservers.add(observer);
@@ -51,6 +55,8 @@ public final class MyModelFactory  implements Factory<Model> {
 
 		@Override
 		public void unregisterObserver(@Nonnull Observer observer) {
+//			if (observer ==)
+			if (observer == null) throw new NullPointerException("Observer is null");
 			Set<Observer> newObservers = new HashSet<>();
 			newObservers.addAll(observers);
 			newObservers.remove(observer);
@@ -65,7 +71,27 @@ public final class MyModelFactory  implements Factory<Model> {
 
 		@Override
 		public void chooseMove(@Nonnull Move move) {
+//			System.out.println(move);
+//			System.out.println(state.getAvailableMoves());
+			state.advance(move);
+			for (Piece piece : state.getRemaining()) {
+				System.out.println(state.getAvailableMoves());
+				System.out.println(piece);
+			}
 
+			if(state.getWinner().isEmpty()) {
+				for (Observer observer : this.observers) {
+					observer.onModelChanged(getCurrentBoard(), Observer.Event.MOVE_MADE);
+				}
+			} else {
+				System.out.println("Game over");
+				for (Observer observer : this.observers) {
+					observer.onModelChanged(getCurrentBoard(), Observer.Event.GAME_OVER);
+				}
+			}
+
+
+//			observer.onModelChanged(new MyBoard(state), Observer.Event.MOVE_MADE);
 		}
 
 		final class MyBoard implements Board {
@@ -114,6 +140,13 @@ public final class MyModelFactory  implements Factory<Model> {
 			@Override
 			public ImmutableSet<Move> getAvailableMoves() {
 				return gameState.getAvailableMoves();
+			}
+		}
+
+		final class MyObserver implements Observer {
+			@Override
+			public void onModelChanged(@Nonnull Board board, @Nonnull Event event) {
+
 			}
 		}
 	}
