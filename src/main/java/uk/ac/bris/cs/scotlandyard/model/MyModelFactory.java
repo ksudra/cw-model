@@ -23,6 +23,7 @@ public final class MyModelFactory  implements Factory<Model> {
 	                                      ImmutableList<Player> detectives) {
 
 		gameStateFactory.build(setup, mrX, detectives);
+		System.out.println(gameStateFactory.build(setup, mrX, detectives).getAvailableMoves());
 
 		return new MyModel(gameStateFactory.build(setup, mrX, detectives), ImmutableSet.of());
 	}
@@ -73,11 +74,10 @@ public final class MyModelFactory  implements Factory<Model> {
 		public void chooseMove(@Nonnull Move move) {
 //			System.out.println(move);
 //			System.out.println(state.getAvailableMoves());
-			state.advance(move);
-			for (Piece piece : state.getRemaining()) {
-				System.out.println(state.getAvailableMoves());
-				System.out.println(piece);
-			}
+//			state.advance(move);
+//			for (Piece piece : state.getRemaining()) {
+//				System.out.println(state.getAvailableMoves());
+//			}
 
 			if(state.getWinner().isEmpty()) {
 				for (Observer observer : this.observers) {

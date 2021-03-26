@@ -30,6 +30,8 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		for (Player detective: detectives) {
 			remaining.add(detective.piece());
 		}
+		GameState state = new MyGameState(setup, ImmutableSet.copyOf(remaining), ImmutableList.of(), mrX, detectives);
+		System.out.println(state.getAvailableMoves());
 		return new MyGameState(setup, ImmutableSet.copyOf(remaining), ImmutableList.of(), mrX, detectives);
 	}
 
@@ -137,12 +139,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 //			System.out.println(log.size());
 //			System.out.println(setup.rounds.size());
 
-			if (getAvailableMoves().isEmpty()) {
-				System.out.println("moves empty");
-			}
-			if (remaining.isEmpty()) {
-				System.out.println("remaining empty");
-			}
 
 			if(detectives.stream().anyMatch(p -> p.location() == mrX.location())){
 				for (int j = 0; j < detectives.size(); j++) {
