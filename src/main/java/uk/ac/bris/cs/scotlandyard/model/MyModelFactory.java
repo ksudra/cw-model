@@ -19,11 +19,11 @@ public final class MyModelFactory  implements Factory<Model> {
 	MyGameStateFactory gameStateFactory = new MyGameStateFactory();
 
 	@Nonnull @Override public Model build(GameSetup setup,
-	                                      Player mrX,
-	                                      ImmutableList<Player> detectives) {
+										  Player mrX,
+										  ImmutableList<Player> detectives) {
 
 		gameStateFactory.build(setup, mrX, detectives);
-		System.out.println(gameStateFactory.build(setup, mrX, detectives).getAvailableMoves());
+//		System.out.println(gameStateFactory.build(setup, mrX, detectives).getAvailableMoves());
 
 		return new MyModel(gameStateFactory.build(setup, mrX, detectives), ImmutableSet.of());
 	}
@@ -58,6 +58,7 @@ public final class MyModelFactory  implements Factory<Model> {
 		public void unregisterObserver(@Nonnull Observer observer) {
 //			if (observer ==)
 			if (observer == null) throw new NullPointerException("Observer is null");
+			if (!observers.contains(observer)) throw new IllegalArgumentException("Observer not registered");
 			Set<Observer> newObservers = new HashSet<>();
 			newObservers.addAll(observers);
 			newObservers.remove(observer);
@@ -72,26 +73,18 @@ public final class MyModelFactory  implements Factory<Model> {
 
 		@Override
 		public void chooseMove(@Nonnull Move move) {
-//			System.out.println(move);
-//			System.out.println(state.getAvailableMoves());
-//			state.advance(move);
-//			for (Piece piece : state.getRemaining()) {
-//				System.out.println(state.getAvailableMoves());
-//			}
-
+			this.state = state.advance(move);
 			if(state.getWinner().isEmpty()) {
 				for (Observer observer : this.observers) {
 					observer.onModelChanged(getCurrentBoard(), Observer.Event.MOVE_MADE);
 				}
-			} else {
+			}
+			if(!state.getWinner().isEmpty()){
 				System.out.println("Game over");
 				for (Observer observer : this.observers) {
 					observer.onModelChanged(getCurrentBoard(), Observer.Event.GAME_OVER);
 				}
 			}
-
-
-//			observer.onModelChanged(new MyBoard(state), Observer.Event.MOVE_MADE);
 		}
 
 		final class MyBoard implements Board {

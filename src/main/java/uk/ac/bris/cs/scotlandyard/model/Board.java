@@ -77,6 +77,4 @@ public interface Board {
 
 		Iterable<? extends Piece> getRemaining();
 	}
-
-
 }
