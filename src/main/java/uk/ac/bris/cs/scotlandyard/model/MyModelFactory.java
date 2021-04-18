@@ -28,15 +28,13 @@ public final class MyModelFactory  implements Factory<Model> {
 		return new MyModel(gameStateFactory.build(setup, mrX, detectives), ImmutableSet.of());
 	}
 
-	private final class MyModel implements Model{
-		private Board board;
+	private static final class MyModel implements Model{
 		private Board.GameState state;
 		private ImmutableSet<Observer> observers;
 		private MyModel(final Board.GameState state,
 						final ImmutableSet<Observer> observers) {
 			this.state = state;
 			this.observers = observers;
-			board = getCurrentBoard();
 		}
 
 		@Nonnull
@@ -48,8 +46,7 @@ public final class MyModelFactory  implements Factory<Model> {
 		@Override
 		public void registerObserver(@Nonnull Observer observer) {
 			if (observers.contains(observer)) throw new IllegalArgumentException("Observer already registered");
-			Set<Observer> newObservers = new HashSet<>();
-			newObservers.addAll(observers);
+			Set<Observer> newObservers = new HashSet<>(observers);
 			newObservers.add(observer);
 			this.observers = ImmutableSet.copyOf(newObservers);
 		}
@@ -59,8 +56,7 @@ public final class MyModelFactory  implements Factory<Model> {
 //			if (observer ==)
 			if (observer == null) throw new NullPointerException("Observer is null");
 			if (!observers.contains(observer)) throw new IllegalArgumentException("Observer not registered");
-			Set<Observer> newObservers = new HashSet<>();
-			newObservers.addAll(observers);
+			Set<Observer> newObservers = new HashSet<>(observers);
 			newObservers.remove(observer);
 			this.observers = ImmutableSet.copyOf(newObservers);
 		}
@@ -87,8 +83,8 @@ public final class MyModelFactory  implements Factory<Model> {
 			}
 		}
 
-		final class MyBoard implements Board {
-			private GameState gameState;
+		static final class MyBoard implements Board {
+			private final GameState gameState;
 			private MyBoard(GameState gameState) {
 				this.gameState = gameState;
 			}
@@ -136,11 +132,5 @@ public final class MyModelFactory  implements Factory<Model> {
 			}
 		}
 
-		final class MyObserver implements Observer {
-			@Override
-			public void onModelChanged(@Nonnull Board board, @Nonnull Event event) {
-
-			}
-		}
 	}
 }
