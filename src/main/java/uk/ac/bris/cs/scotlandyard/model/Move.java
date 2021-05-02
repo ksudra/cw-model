@@ -42,7 +42,7 @@ public interface Move extends Serializable {
 	 */
 	<T> T visit(Visitor<T> visitor);
 
-	boolean isMoveType();
+	boolean isDouble();
 
 	/**
 	 * A generic visitor for use with the {@link Move#visit(Visitor)} method.
@@ -123,7 +123,7 @@ public interface Move extends Serializable {
 		}
 
 		@Override
-		public boolean isMoveType() {
+		public boolean isDouble() {
 			return false;
 		}
 	}
@@ -187,7 +187,7 @@ public interface Move extends Serializable {
 			return "x2(" + piece + "@" + source + ", " + ticket1 + ", " + destination1 + ", " + ticket2 + ", " + destination2 + ")";
 		}
 		@Override
-		public boolean isMoveType() {
+		public boolean isDouble() {
 			return true;
 		}
 	}

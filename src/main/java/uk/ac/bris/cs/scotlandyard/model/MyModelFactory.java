@@ -53,7 +53,6 @@ public final class MyModelFactory  implements Factory<Model> {
 
 		@Override
 		public void unregisterObserver(@Nonnull Observer observer) {
-//			if (observer ==)
 			if (observer == null) throw new NullPointerException("Observer is null");
 			if (!observers.contains(observer)) throw new IllegalArgumentException("Observer not registered");
 			Set<Observer> newObservers = new HashSet<>(observers);

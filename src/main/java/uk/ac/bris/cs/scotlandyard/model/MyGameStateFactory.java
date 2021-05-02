@@ -216,6 +216,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					for (Player detective : detectives) {
 						if (move.commencedBy() == detective.piece()) {
 							newPlayer = updatePlayer(detective, ticketList, dest, false);
+							break;
 						}
 					}
 					newMrX = updatePlayer(mrX, ticketList, mrX.location(), true);
@@ -227,14 +228,14 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					}
 					newMrX = newPlayer;
 
-					if(!move.isMoveType()) {
+					if(!move.isDouble()) {
 						if(setup.rounds.get(currentRound)) {
 							newLog.add(LogEntry.reveal(ticketList.get(0), newMrX.location()));
 						} else {
 							newLog.add(LogEntry.hidden(ticketList.get(0)));
 						}
 						currentRound++;
-					} else if(move.isMoveType()){
+					} else if(move.isDouble()){
 						if(setup.rounds.get(currentRound)) {
 							newLog.add(LogEntry.reveal(ticketList.get(0), ((Move.DoubleMove) move).destination1));
 						} else {
