@@ -39,7 +39,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		final private ImmutableList<LogEntry> log;
 		final private Player mrX;
 		final private List<Player> detectives;
-		protected int currentRound;
 		final private ImmutableSet<Move> moves;
 		final private ImmutableSet<Piece> winner;
 
@@ -137,13 +136,13 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			ImmutableSet<Move> AvailableMoves = getAvailableMoves();
 			ImmutableMap<ScotlandYard.Ticket, Integer> emptyTickets = ImmutableMap.of(TAXI, 0, BUS, 0, UNDERGROUND, 0, DOUBLE, 0, SECRET, 0);
 
-			if(detectives.stream().anyMatch(p -> p.location() == mrX.location())){
+			if(detectives.stream().anyMatch(p -> p.location() == mrX.location())) {
 				for (Player detective : detectives) {
 					winners.add(detective.piece());
 				}
-			}else if(detectives.stream().allMatch(p -> p.tickets().equals(emptyTickets))) {
+			} else if(detectives.stream().allMatch(p -> p.tickets().equals(emptyTickets))) {
 				winners.add(mrX.piece());
-			}else if (AvailableMoves.isEmpty() && !remaining.isEmpty()) {
+			} else if (AvailableMoves.isEmpty() && !remaining.isEmpty()) {
 				if (!remaining.contains(mrX.piece())) {
 					winners.add(mrX.piece());
 				} else if (remaining.contains(mrX.piece())) {
@@ -195,7 +194,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					.collect(Collectors.toList());
 
 			List<LogEntry> newLog = new ArrayList<>(log);
-			currentRound = newLog.size();
 
 			int dest = move.visit(new Move.Visitor<>(){
 				@Override
@@ -229,30 +227,26 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					newMrX = newPlayer;
 
 					if(!move.isDouble()) {
-						if(setup.rounds.get(currentRound)) {
+						if(setup.rounds.get(newLog.size())) {
 							newLog.add(LogEntry.reveal(ticketList.get(0), newMrX.location()));
 						} else {
 							newLog.add(LogEntry.hidden(ticketList.get(0)));
 						}
-						currentRound++;
 					} else if(move.isDouble()){
-						if(setup.rounds.get(currentRound)) {
+						if(setup.rounds.get(newLog.size())) {
 							newLog.add(LogEntry.reveal(ticketList.get(0), ((Move.DoubleMove) move).destination1));
 						} else {
 							newLog.add(LogEntry.hidden(ticketList.get(0)));
 						}
-
-						currentRound++;
-						if(setup.rounds.get(currentRound)) {
+						if(setup.rounds.get(newLog.size())) {
 							newLog.add(LogEntry.reveal(ticketList.get(1), newMrX.location()));
 						} else {
 							newLog.add(LogEntry.hidden(ticketList.get(1)));
 						}
-						currentRound++;
 					}
 
 				} else if(newPlayer.piece().isDetective()) {
-					currentRound = log.size();
+	
 					if (remaining.contains(mrX.piece())) {
 						newRemaining.add(mrX.piece());
 					}
